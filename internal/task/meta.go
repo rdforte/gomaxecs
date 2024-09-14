@@ -1,4 +1,4 @@
-package gomaxprocs
+package task
 
 import (
 	"encoding/json"

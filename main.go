@@ -3,18 +3,22 @@ package main
 import (
 	"fmt"
 	"log"
+	"runtime"
 
 	"github.com/rdforte/gomax-ecs/internal/config"
-	"github.com/rdforte/gomax-ecs/internal/gomaxprocs"
+	"github.com/rdforte/gomax-ecs/internal/task"
 )
 
 func init() {
 	cfg := config.New()
-	if cpu, err := gomaxprocs.Set(cfg.MetadataURI, cfg.ConainerID); err != nil {
+	threads, err := task.GetMaxThreads(cfg.MetadataURI, cfg.ConainerID)
+	if err != nil {
 		log.Println("failed to set GOMAXPROCS:", err)
-	} else {
-		log.Println("GOMAXPROCS set to:", cpu)
+		return
 	}
+
+	runtime.GOMAXPROCS(threads)
+	log.Println("GOMAXPROCS set to:", threads)
 }
 
 func main() {
