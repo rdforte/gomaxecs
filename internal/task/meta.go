@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/rdforte/gomax-ecs/internal/client"
+	"github.com/rdforte/gomaxecs/internal/client"
 )
 
 // TaskMeta represents the ECS Task Metadata.

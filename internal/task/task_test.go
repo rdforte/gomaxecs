@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rdforte/gomax-ecs/internal/config"
-	"github.com/rdforte/gomax-ecs/internal/task"
+	"github.com/rdforte/gomaxecs/internal/config"
+	"github.com/rdforte/gomaxecs/internal/task"
 )
 
 func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/rdforte/gomax-ecs
+module github.com/rdforte/gomaxecs
 
 go 1.22.4
 

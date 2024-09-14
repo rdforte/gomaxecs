@@ -4,8 +4,8 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/rdforte/gomax-ecs/internal/config"
-	"github.com/rdforte/gomax-ecs/internal/task"
+	"github.com/rdforte/gomaxecs/internal/config"
+	"github.com/rdforte/gomaxecs/internal/task"
 )
 
 func init() {

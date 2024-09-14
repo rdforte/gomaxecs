@@ -3,7 +3,7 @@ package task
 import (
 	"fmt"
 
-	"github.com/rdforte/gomax-ecs/internal/config"
+	"github.com/rdforte/gomaxecs/internal/config"
 )
 
 // Task represents a task.

@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/rdforte/gomax-ecs/internal/config"
+	"github.com/rdforte/gomaxecs/internal/config"
 )
 
 // New returns a new Client.
