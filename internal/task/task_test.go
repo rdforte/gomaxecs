@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/rdforte/gomax-ecs/internal/config"
 	"github.com/rdforte/gomax-ecs/internal/task"
 )
 
@@ -134,7 +135,10 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
-			gotCPU, err := task.GetMaxThreads(ts.URL, "container-id")
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL, ConainerID: "container-id"})
+			assert.NoError(t, err)
+
+			gotCPU, err := ecsTask.GetMaxProcs()
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantCPU, gotCPU)
 		})
@@ -200,7 +204,10 @@ func TestTask_GetCPU_GetsCPUUsingTaskLimit(t *testing.T) {
 			ts := tt.testServer(tt.taskCPU)
 			defer ts.Close()
 
-			gotCPU, err := task.GetMaxThreads(ts.URL, "container-id")
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL, ConainerID: "container-id"})
+			assert.NoError(t, err)
+
+			gotCPU, err := ecsTask.GetMaxProcs()
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantCPU, gotCPU)
 		})

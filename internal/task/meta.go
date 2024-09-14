@@ -4,14 +4,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
+
+	"github.com/rdforte/gomax-ecs/internal/client"
 )
 
-func getECSTaskMeta(ecsMetaURI string) (Task, error) {
-	var task Task
+// TaskMeta represents the ECS Task Metadata.
+type TaskMeta struct {
+	Containers []Container `json:"Containers"`
+	Limits     Limit       `json:"Limits"`
+}
 
-	url := fmt.Sprintf("%s/task", ecsMetaURI)
-	resp, err := http.Get(url)
+// Container represents the ECS Container Metadata.
+type Container struct {
+	DockerID string `json:"DockerId"`
+	Limits   Limit  `json:"Limits"`
+}
+
+// Limit contains the CPU limit.
+type Limit struct {
+	CPU float64 `json:"CPU"`
+}
+
+func (t *Task) getTaskMeta() (TaskMeta, error) {
+	var task TaskMeta
+
+	url := fmt.Sprintf("%s/task", t.cfg.MetadataURI)
+	client := client.New(t.cfg.Client)
+	resp, err := client.Get(url)
 	if err != nil {
 		return task, fmt.Errorf("request failed: %w", err)
 	}
@@ -28,18 +47,4 @@ func getECSTaskMeta(ecsMetaURI string) (Task, error) {
 	}
 
 	return task, nil
-}
-
-type Task struct {
-	Containers []Container `json:"Containers"`
-	Limits     Limit       `json:"Limits"`
-}
-
-type Container struct {
-	DockerID string `json:"DockerId"`
-	Limits   Limit  `json:"Limits"`
-}
-
-type Limit struct {
-	CPU float64 `json:"CPU"`
 }

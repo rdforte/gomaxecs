@@ -1,7 +1,6 @@
-package main
+package gomaxecs
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 
@@ -11,16 +10,17 @@ import (
 
 func init() {
 	cfg := config.New()
-	threads, err := task.GetMaxThreads(cfg.MetadataURI, cfg.ConainerID)
+	t, err := task.New(cfg)
+	if err != nil {
+		log.Println("task initialised failed. Unable to set GOMAXPROCS:", err)
+	}
+
+	procs, err := t.GetMaxProcs()
 	if err != nil {
 		log.Println("failed to set GOMAXPROCS:", err)
 		return
 	}
 
-	runtime.GOMAXPROCS(threads)
-	log.Println("GOMAXPROCS set to:", threads)
-}
-
-func main() {
-	fmt.Println("main function")
+	runtime.GOMAXPROCS(procs)
+	log.Println("GOMAXPROCS set to:", procs)
 }
