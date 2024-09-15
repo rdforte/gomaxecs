@@ -70,7 +70,7 @@ Now we have our Go application using all 8 cores resulting in 8 threads executin
 As a result CFS will throttle our CPU resources, meaning that no more CPU resources will be allocated till the next period. This means our application will be sitting idle doing nothing for
 a full 50ms.
 
-If our Go application has an average latency of 50ms this now means a request to our service can up to 150ms which is 300% increase in latency.
+If our Go application has an average latency of 50ms this now means a request to our service can take up to 150ms to complete, which is 300% increase in latency.
 
 ## CFS Solution
 In Kubernetes this issue is quite easy to solve as we have [uber automaxprocs](https://github.com/uber-go/automaxprocs) to solve this issue. So why not use Uber's automaxprocs then and whats the reason
