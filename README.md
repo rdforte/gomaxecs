@@ -75,7 +75,7 @@ If our Go application has an average latency of 50ms this now means a request to
 ## CFS Solution
 In Kubernetes this issue is quite easy to solve as we have [uber automaxprocs](https://github.com/uber-go/automaxprocs) to solve this issue. So why not use Uber's automaxprocs then and whats the reason
 behind **gomaxecs package**? Well Ubers automaxprocs does not work for ECS https://github.com/uber-go/automaxprocs/issues/66 becuase the cgroup `cpu.cfs_quota_us` is set to -1 🥲. The workaround for this
-is to then leverage [ECS Metadat](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint.html) as a means to sourcing the container limts and setting GOMAXPROCS at runtime.
+is to then leverage [ECS Metadata](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint.html) as a means to sourcing the container limts and setting GOMAXPROCS at runtime.
 
 ## Contribution
 If anyone has any good ideas on how this package can be improved, all contributions are welcome.
