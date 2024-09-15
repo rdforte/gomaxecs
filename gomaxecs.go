@@ -35,6 +35,7 @@ func init() {
 	t, err := task.New(cfg)
 	if err != nil {
 		log.Println("task initialised failed. Unable to set GOMAXPROCS:", err)
+		return
 	}
 
 	procs, err := t.GetMaxProcs()
