@@ -81,7 +81,8 @@ is to then leverage [ECS Metadat](https://docs.aws.amazon.com/AmazonECS/latest/d
 If anyone has any good ideas on how this package can be improved, all contributions are welcome.
 
 ## References
-[100 Go Mistakes](https://100go.co/?h=kubernetes#not-understanding-the-impacts-of-running-go-in-docker-and-kubernetes-100) was the main source of inspiration for this package.
+[100 Go Mistakes](https://100go.co/?h=kubernetes#not-understanding-the-impacts-of-running-go-in-docker-and-kubernetes-100) was the main source of inspiration for this package and the examples were borrowed from
+the book and modified to suit ECS.
 
 
 <hr>
