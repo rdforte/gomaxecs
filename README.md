@@ -50,10 +50,10 @@ The ECS Task CPU period is locked into 100ms
 
 [https://github.com/aws/amazon-ecs-agent/blob/d68e729f73e588982dc2189a1c618c18c47c931b/agent/api/task/task_linux.go#L39](https://github.com/aws/amazon-ecs-agent/blob/d68e729f73e588982dc2189a1c618c18c47c931b/agent/api/task/task_linux.go#L39)
 
-The CPU Period refers to the time period in microseconds, where the kernel will do some calculations to figure out the alloted amount of CPU time to provide each task.
+The CPU Period refers to the time period in microseconds, where the kernel will do some calculations to figure out the allotted amount of CPU time to provide each task.
 In the above configuration this would be 4 vCPU's multiplied by 100ms giving the task 400ms (4 x 100ms).
 
-If all is well and good with our Go application then we would have go routines scheduled on 4 threads accross 4 cores.
+If all is well and good with our Go application then we would have go routines scheduled on 4 threads across 4 cores.
 
 ![4 threads](./assets/4-threads.png)
 
