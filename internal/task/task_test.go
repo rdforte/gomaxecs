@@ -146,6 +146,13 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			taskCPU:      16,
 			testServer:   testServerContainerLimit,
 		},
+		{
+			name:         "should get cpu of 16 when task CPU limit is 0 and container CPU limit is 16384 vCPU",
+			wantCPU:      16,
+			containerCPU: 16 << 10,
+			taskCPU:      0,
+			testServer:   testServerContainerLimit,
+		},
 	}
 
 	for _, tt := range tableTest {
@@ -155,12 +162,76 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL, ConainerID: "container-id"})
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
 			assert.NoError(t, err)
 
 			gotCPU, err := ecsTask.GetMaxProcs()
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantCPU, gotCPU)
+		})
+	}
+}
+
+func TestTask_GetCPU_GetsCPUUsingContainerLimit_ReturnsError(t *testing.T) {
+	t.Parallel()
+	tableTest := []struct {
+		name         string
+		wantError    string
+		containerCPU int
+		taskCPU      int
+		testServer   func(containerCPU, taskCPU int) *httptest.Server
+	}{
+		{
+			name:         "should raise error when task CPU limit is 0 and container CPU limit is 0",
+			wantError:    "no CPU limit found for task or container",
+			containerCPU: 0,
+			taskCPU:      0,
+			testServer:   testServerContainerLimit,
+		},
+	}
+
+	for _, tt := range tableTest {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
+			defer ts.Close()
+
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
+			assert.NoError(t, err)
+
+			_, err = ecsTask.GetMaxProcs()
+			assert.ErrorContains(t, err, tt.wantError)
+		})
+	}
+}
+
+func TestTask_GetCPU_GetsCPUUsingContainerLimit_ReturnsErrorWhenContainerEndpointError(t *testing.T) {
+	t.Parallel()
+	tableTest := []struct {
+		name       string
+		wantError  string
+		testServer func() *httptest.Server
+	}{
+		{
+			name:       "should raise error when ECS container endpoint returns an error",
+			wantError:  "failed to get ECS container meta:",
+			testServer: testServerContainerEndpointError,
+		},
+	}
+
+	for _, tt := range tableTest {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ts := tt.testServer()
+			defer ts.Close()
+
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
+			assert.NoError(t, err)
+
+			_, err = ecsTask.GetMaxProcs()
+			assert.ErrorContains(t, err, tt.wantError)
 		})
 	}
 }
@@ -224,7 +295,7 @@ func TestTask_GetCPU_GetsCPUUsingTaskLimit(t *testing.T) {
 			ts := tt.testServer(tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL, ConainerID: "container-id"})
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
 			assert.NoError(t, err)
 
 			gotCPU, err := ecsTask.GetMaxProcs()
@@ -234,14 +305,100 @@ func TestTask_GetCPU_GetsCPUUsingTaskLimit(t *testing.T) {
 	}
 }
 
+func TestTask_GetCPU_GetsCPUUsingTaskLimit_ReturnsError(t *testing.T) {
+	t.Parallel()
+	tableTest := []struct {
+		name       string
+		wantError  string
+		taskCPU    int
+		testServer func(taskCPU int) *httptest.Server
+	}{
+		{
+			name:       "should raise error when task CPU limit is 0 and container CPU limit does not exist",
+			wantError:  "no CPU limit found for task or container",
+			taskCPU:    0,
+			testServer: testServerTaskLimit,
+		},
+	}
+
+	for _, tt := range tableTest {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ts := tt.testServer(tt.taskCPU)
+			defer ts.Close()
+
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
+			assert.NoError(t, err)
+
+			_, err = ecsTask.GetMaxProcs()
+			assert.ErrorContains(t, err, tt.wantError)
+		})
+	}
+}
+
+func TestTask_Endpoint_ReturnsError(t *testing.T) {
+	t.Parallel()
+	tableTest := []struct {
+		name       string
+		wantError  string
+		testServer func() *httptest.Server
+	}{
+		{
+			name:       "should raise error when ECS task endpoint returns an error",
+			wantError:  "failed to get ECS task meta:",
+			testServer: testServerTaskEndpointError,
+		},
+	}
+
+	for _, tt := range tableTest {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ts := tt.testServer()
+			defer ts.Close()
+
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
+			assert.NoError(t, err)
+
+			_, err = ecsTask.GetMaxProcs()
+			assert.ErrorContains(t, err, tt.wantError)
+		})
+	}
+}
+
 func testServerContainerLimit(containerCPU, taskCPU int) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`, containerCPU, taskCPU)))
-	}))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+	})
+	mux.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, taskCPU, containerCPU)))
+	})
+	return httptest.NewServer(mux)
 }
 
 func testServerTaskLimit(taskCPU int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d}}`, taskCPU)))
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
 	}))
+}
+
+func testServerTaskEndpointError() *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+	})
+	mux.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	return httptest.NewServer(mux)
+}
+
+func testServerContainerEndpointError() *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	return httptest.NewServer(mux)
 }

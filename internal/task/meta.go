@@ -31,7 +31,7 @@ import (
 // TaskMeta represents the ECS Task Metadata.
 type TaskMeta struct {
 	Containers []Container `json:"Containers"`
-	Limits     Limit       `json:"Limits"`
+	Limits     Limit       `json:"Limits"` // this is optional in the response
 }
 
 // Container represents the ECS Container Metadata.
@@ -45,6 +45,35 @@ type Limit struct {
 	CPU float64 `json:"CPU"`
 }
 
+// Grab the container metadata from the ECS Metadata endpoint.
+// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html
+func (t *Task) getContainerMeta() (Container, error) {
+	var container Container
+
+	client := client.New(t.cfg.Client)
+
+	resp, err := client.Get(t.cfg.MetadataURI)
+	if err != nil {
+		return container, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return container, fmt.Errorf("read failed: %w", err)
+	}
+
+	err = json.Unmarshal(data, &container)
+	if err != nil {
+		return container, fmt.Errorf("unmarshal failed: %w", err)
+	}
+
+	return container, nil
+}
+
+// Grab the task metadata from the ECS Metadata endpoint + `/task`
+// This will also include the container metadata.
+// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html#task-metadata-endpoint-v4-example-task-metadata-response
 func (t *Task) getTaskMeta() (TaskMeta, error) {
 	var task TaskMeta
 

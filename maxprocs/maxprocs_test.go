@@ -93,7 +93,12 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 }
 
 func testServerContainerLimit(containerCPU, taskCPU int) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/container-id", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+	})
+	mux.HandleFunc("/container-id/task", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf(`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`, containerCPU, taskCPU)))
-	}))
+	})
+	return httptest.NewServer(mux)
 }

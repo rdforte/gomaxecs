@@ -20,7 +20,6 @@ func TestConfig_LoadConfiguration(t *testing.T) {
 
 	wantCfg := config.Config{
 		MetadataURI: uri,
-		ConainerID:  containerID,
 		Client: config.Client{
 			HTTPTimeout:           time.Second * 5,
 			DialTimeout:           time.Second,
