@@ -281,8 +281,8 @@ func testServerContainerLimit(containerCPU, taskCPU int) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-func testServerTaskLimit(containerCPU int) *httptest.Server {
+func testServerTaskLimit(taskCPU int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
 	}))
 }
