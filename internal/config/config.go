@@ -32,12 +32,8 @@ const metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
 func New() Config {
 	uri := metadataURI()
 
-	pathParts := strings.Split(uri, "/")
-	containerID := pathParts[len(pathParts)-1]
-
 	return Config{
 		MetadataURI: uri,
-		ConainerID:  containerID,
 		Client: Client{
 			HTTPTimeout:           time.Second * 5,
 			DialTimeout:           time.Second,
@@ -52,13 +48,13 @@ func New() Config {
 }
 
 func metadataURI() string {
-	return os.Getenv(metaURIEnv)
+	uri := os.Getenv(metaURIEnv)
+	return strings.TrimRight(uri, "/")
 }
 
 // Config represents the packagge configuration.
 type Config struct {
 	MetadataURI string
-	ConainerID  string
 	Client      Client
 }
 

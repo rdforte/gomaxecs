@@ -40,6 +40,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 		containerCPU int
 		taskCPU      int
 		testServer   func(containerCPU, taskCPU int) *httptest.Server
+		wantErr      bool
 	}{
 		{
 			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 1024 vCPU",
@@ -47,6 +48,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 1 << 10,
 			taskCPU:      1,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 2 and container CPU limit is 1024 vCPU",
@@ -54,6 +56,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 1 << 10,
 			taskCPU:      2,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 4 and container CPU limit is 1024 vCPU",
@@ -61,6 +64,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 1 << 10,
 			taskCPU:      4,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 8 and container CPU limit is 1024 vCPU",
@@ -68,6 +72,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 1 << 10,
 			taskCPU:      8,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 16 and container CPU limit is 1024 vCPU",
@@ -75,6 +80,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 1 << 10,
 			taskCPU:      16,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 2 and container CPU limit is 2048 vCPU",
@@ -82,6 +88,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 2 << 10,
 			taskCPU:      2,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 4 and container CPU limit is 2048 vCPU",
@@ -89,6 +96,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 2 << 10,
 			taskCPU:      2,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 8 and container CPU limit is 2048 vCPU",
@@ -96,6 +104,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 2 << 10,
 			taskCPU:      8,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 16 and container CPU limit is 2048 vCPU",
@@ -103,6 +112,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 2 << 10,
 			taskCPU:      16,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 4 and container CPU limit is 4096 vCPU",
@@ -110,6 +120,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 4 << 10,
 			taskCPU:      4,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 8 and container CPU limit is 4096 vCPU",
@@ -117,6 +128,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 4 << 10,
 			taskCPU:      8,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 16 and container CPU limit is 4096 vCPU",
@@ -124,6 +136,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 4 << 10,
 			taskCPU:      16,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 8 when task CPU limit is 8 and container CPU limit is 8192 vCPU",
@@ -131,6 +144,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 8 << 10,
 			taskCPU:      8,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 8 when task CPU limit is 16 and container CPU limit is 8192 vCPU",
@@ -138,6 +152,7 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 8 << 10,
 			taskCPU:      16,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
 		},
 		{
 			name:         "should get cpu of 16 when task CPU limit is 16 and container CPU limit is 16384 vCPU",
@@ -145,6 +160,23 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerCPU: 16 << 10,
 			taskCPU:      16,
 			testServer:   testServerContainerLimit,
+			wantErr:      false,
+		},
+		{
+			name:         "should get cpu of 16 when task CPU limit is 0 and container CPU limit is 16384 vCPU",
+			wantCPU:      16,
+			containerCPU: 16 << 10,
+			taskCPU:      0,
+			testServer:   testServerContainerLimit,
+			wantErr:      false,
+		},
+		{
+			name:         "should raise error when task CPU limit is 0 and container CPU limit is 0 vCPU",
+			wantCPU:      0,
+			containerCPU: 0,
+			taskCPU:      0,
+			testServer:   testServerContainerLimit,
+			wantErr:      true,
 		},
 	}
 
@@ -155,11 +187,15 @@ func TestTask_GetCPU_GetsCPUUsingContainerLimit(t *testing.T) {
 			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL, ConainerID: "container-id"})
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
 			assert.NoError(t, err)
 
 			gotCPU, err := ecsTask.GetMaxProcs()
-			assert.NoError(t, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 			assert.Equal(t, tt.wantCPU, gotCPU)
 		})
 	}
@@ -224,7 +260,7 @@ func TestTask_GetCPU_GetsCPUUsingTaskLimit(t *testing.T) {
 			ts := tt.testServer(tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL, ConainerID: "container-id"})
+			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
 			assert.NoError(t, err)
 
 			gotCPU, err := ecsTask.GetMaxProcs()
@@ -235,13 +271,18 @@ func TestTask_GetCPU_GetsCPUUsingTaskLimit(t *testing.T) {
 }
 
 func testServerContainerLimit(containerCPU, taskCPU int) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`, containerCPU, taskCPU)))
-	}))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+	})
+	mux.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, taskCPU, containerCPU)))
+	})
+	return httptest.NewServer(mux)
 }
 
 func testServerTaskLimit(taskCPU int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d}}`, taskCPU)))
+		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
 	}))
 }
