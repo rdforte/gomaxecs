@@ -20,6 +20,8 @@
 
 package client_test
 
+// TODO: Implement tests
+
 import "testing"
 
 func TestClient_Get(t *testing.T) {
