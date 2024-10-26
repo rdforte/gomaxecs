@@ -1,8 +1,8 @@
-# gomaxecs [![GoDoc][doc-img]][doc] [![Build Status][ci-img]][ci] [![License: MIT][mit-img]][mit]
+# gomaxecs [![Build Status][ci-img]][ci] [![Test Coverage][cov-img]][cov] [![GoDoc][doc-img]][doc] [![License: MIT][mit-img]][mit]
 
 Package for auto setting GOMAXPROCS based on ECS task and container CPU limits.
 
-Due to Go not being CFS aware  https://github.com/golang/go/issues/33803 and because [uber automaxprocs](https://github.com/uber-go/automaxprocs) is unable to set GOMAXPROCS for ECS https://github.com/uber-go/automaxprocs/issues/66. This lead to **gomaxecs**.
+Due to Go not being CFS aware https://github.com/golang/go/issues/33803 and because [uber automaxprocs](https://github.com/uber-go/automaxprocs) is unable to set GOMAXPROCS for ECS https://github.com/uber-go/automaxprocs/issues/66. This lead to **gomaxecs**.
 
 ## Installation
 
@@ -46,7 +46,7 @@ Lets imagine a scenario where we configure our ECS Task to use 8 CPU's and our c
 }
 ```
 
-The ECS Task CPU period is locked into 100ms 
+The ECS Task CPU period is locked into 100ms
 
 [https://github.com/aws/amazon-ecs-agent/blob/d68e729f73e588982dc2189a1c618c18c47c931b/agent/api/task/task_linux.go#L39](https://github.com/aws/amazon-ecs-agent/blob/d68e729f73e588982dc2189a1c618c18c47c931b/agent/api/task/task_linux.go#L39)
 
@@ -63,32 +63,32 @@ For each 100ms period our Go application consumes the full 400 out of 400ms, the
 
 Now Go is **NOT** CFS aware https://github.com/golang/go/issues/33803 therefore GOMAXPROCS will default to using all 8 cores of the Task.
 
-
 ![8 threads](./assets/8-threads.png)
 
-Now we have our Go application using all 8 cores resulting in 8 threads executing go routines. After 50ms of execution we reach our CPU quota 50ms * 8 threads giving us 400ms (8 * 50ms).
+Now we have our Go application using all 8 cores resulting in 8 threads executing go routines. After 50ms of execution we reach our CPU quota 50ms _ 8 threads giving us 400ms (8 _ 50ms).
 As a result CFS will throttle our CPU resources, meaning that no more CPU resources will be allocated till the next period. This means our application will be sitting idle doing nothing for
 a full 50ms.
 
 If our Go application has an average latency of 50ms this now means a request to our service can take up to 150ms to complete, which is a 300% increase in latency.
 
 ## CFS Solution
+
 In Kubernetes this issue is quite easy to solve as we have [uber automaxprocs](https://github.com/uber-go/automaxprocs) to solve this issue. So why not use Uber's automaxprocs then and whats the reason
 behind **gomaxecs package**? Well Ubers automaxprocs does not work for ECS https://github.com/uber-go/automaxprocs/issues/66 because the cgroup `cpu.cfs_quota_us` is set to -1 🥲. The workaround for this
 is to then leverage [ECS Metadata](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint.html) as a means to sourcing the container limits and setting GOMAXPROCS at runtime.
 
 ## Contribution
+
 If anyone has any good ideas on how this package can be improved, all contributions are welcome.
 
 ## References
+
 [100 Go Mistakes](https://100go.co/?h=kubernetes#not-understanding-the-impacts-of-running-go-in-docker-and-kubernetes-100) was the main source of inspiration for this package. The examples were borrowed from
 the book and modified to suit ECS.
-
 
 <hr>
 
 Released under the [MIT License](LICENSE).
-
 
 [doc-img]: https://godoc.org/github.com/rdforte/gomaxecs?status.svg
 [doc]: https://godoc.org/github.com/rdforte/gomaxecs
@@ -96,3 +96,5 @@ Released under the [MIT License](LICENSE).
 [ci]: https://github.com/rdforte/gomaxecs/actions/workflows/build.yml
 [mit-img]: https://img.shields.io/badge/License-MIT-yellow.svg
 [mit]: https://github.com/rdforte/gomaxecs/blob/main/LICENSE
+[cov-img]: https://codecov.io/github/rdforte/gomaxecs/graph/badge.svg
+[cov]: https://codecov.io/github/rdforte/gomaxecs
