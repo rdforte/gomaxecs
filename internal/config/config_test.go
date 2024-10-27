@@ -10,7 +10,7 @@ import (
 	"github.com/rdforte/gomaxecs/internal/config"
 )
 
-func Test_Config_LoadConfiguration(t *testing.T) {
+func TestConfig_LoadConfiguration(t *testing.T) {
 	metaURIEnv := "ECS_CONTAINER_METADATA_URI_V4"
 	containerID := "container-id"
 	uri := strings.Join([]string{"mock-ecs-metadata-uri", "/", containerID}, "")

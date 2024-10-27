@@ -18,16 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package gomaxecs provides a simple way to set GOMAXPROCS based on ECS container
-// and task CPU limits.
-package gomaxecs
+// Validate init function builds as expected.
+package gomaxecs_test
 
-import (
-	"log"
-
-	"github.com/rdforte/gomaxecs/maxprocs"
-)
-
-func init() {
-	maxprocs.Set(log.Default())
-}
+import _ "github.com/rdforte/gomaxecs"
