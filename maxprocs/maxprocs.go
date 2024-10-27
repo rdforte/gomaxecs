@@ -8,6 +8,7 @@ import (
 	"github.com/rdforte/gomaxecs/internal/task"
 )
 
+// Set sets GOMAXPROCS based on the CPU limit of the container and the task.
 func Set(log *log.Logger) {
 	cfg := config.New()
 	t, err := task.New(cfg)
