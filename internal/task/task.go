@@ -39,9 +39,6 @@ func New(cfg config.Config) (*Task, error) {
 		return nil, fmt.Errorf("no container URI provided")
 	}
 
-	if len(cfg.ConainerID) == 0 {
-		return nil, fmt.Errorf("no container ID provided")
-	}
 	return &Task{cfg}, nil
 }
 
@@ -50,31 +47,40 @@ func New(cfg config.Config) (*Task, error) {
 // The container vCPU can not be greater than Task CPU limit, therefore if
 // Task CPU limit is less than 1, the max threads returned is 1.
 // If no CPU limit is found for the container, then the max number of threads
-// returned is the number of CPU's for the ECS Task. If no CPU limit is found for the
-// Task, then 0 is returned with an error
+// returned is the number of CPU's for the ECS Task.
 func (t *Task) GetMaxProcs() (int, error) {
+	container, err := t.getContainerMeta()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get ECS container meta: %w", err)
+	}
+
 	task, err := t.getTaskMeta()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get ECS task: %w", err)
+		return 0, fmt.Errorf("failed to get ECS task meta: %w", err)
 	}
 
-	if task.Limits.CPU == 0 {
-		return 0, fmt.Errorf("no CPU limit found for task")
+	// Either the container limit or the task limit must be set
+	if container.Limits.CPU == 0 && task.Limits.CPU == 0 {
+		return 0, fmt.Errorf("no CPU limit found for task or container")
 	}
 
-	var cpuLimit float64
-	for _, container := range task.Containers {
-		if container.DockerID == t.cfg.ConainerID {
-			cpuLimit = container.Limits.CPU
+	var containerCPULimit float64
+	for _, taskContainer := range task.Containers {
+		if container.DockerID == taskContainer.DockerID {
+			containerCPULimit = taskContainer.Limits.CPU
 		}
 	}
 
-	if cpuLimit == 0 {
+	if containerCPULimit == 0 {
 		minThreads := 1
 		return max(int(task.Limits.CPU), minThreads), nil
 	}
 
-	cpu := int(cpuLimit) >> 10
+	cpu := int(containerCPULimit) >> 10
+	taskCPULimit := int(task.Limits.CPU)
+	if taskCPULimit > 0 {
+		return min(taskCPULimit, cpu), nil
+	}
 
 	return cpu, nil
 }
