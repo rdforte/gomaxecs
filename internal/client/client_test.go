@@ -22,8 +22,34 @@ package client_test
 
 // TODO: Implement tests
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
-func TestClient_Get(t *testing.T) {
-	t.Skip("Not implemented")
+	"github.com/stretchr/testify/assert"
+
+	"github.com/rdforte/gomaxecs/internal/client"
+	"github.com/rdforte/gomaxecs/internal/config"
+)
+
+func TestClient_Get_Success(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	cfg := config.Client{}
+	c := client.New(cfg)
+
+	_, err := c.Get(ts.URL)
+	assert.Nil(t, err)
+}
+
+func TestClient_Get_Failure(t *testing.T) {
+	cfg := config.Client{}
+
+	c := client.New(cfg)
+
+	_, err := c.Get("invalid-url")
+	assert.NotNil(t, err)
 }
