@@ -1,4 +1,13 @@
-# gomaxecs [![Build Status][ci-img]][ci] [![Test Coverage][cov-img]][cov] [![GoDoc][doc-img]][doc] [![License: MIT][mit-img]][mit]
+<p align="center">
+  <img width="50%" height="50%" src="assets/logo.png" />
+</p>
+<div align="center">
+
+[![Build Status][ci-img]][ci] [![Test Coverage][cov-img]][cov] [![GoDoc][doc-img]][doc] [![License: MIT][mit-img]][mit]
+
+# gomaxecs
+
+</div>
 
 Package for auto setting GOMAXPROCS based on ECS task and container CPU limits.
 
