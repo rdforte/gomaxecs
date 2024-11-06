@@ -24,8 +24,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"github.com/rdforte/gomaxecs/internal/client"
 )
 
 // TaskMeta represents the ECS Task Metadata.
@@ -50,9 +48,7 @@ type Limit struct {
 func (t *Task) getContainerMeta() (Container, error) {
 	var container Container
 
-	client := client.New(t.cfg.Client)
-
-	resp, err := client.Get(t.cfg.MetadataURI)
+	resp, err := t.client.Get(t.containerMetadataURI)
 	if err != nil {
 		return container, fmt.Errorf("request failed: %w", err)
 	}
@@ -77,9 +73,7 @@ func (t *Task) getContainerMeta() (Container, error) {
 func (t *Task) getTaskMeta() (TaskMeta, error) {
 	var task TaskMeta
 
-	url := fmt.Sprintf("%s/task", t.cfg.MetadataURI)
-	client := client.New(t.cfg.Client)
-	resp, err := client.Get(url)
+	resp, err := t.client.Get(t.taskMetadataURI)
 	if err != nil {
 		return task, fmt.Errorf("request failed: %w", err)
 	}

@@ -162,7 +162,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
+			ecsTask, err := task.New(config.Config{ContainerMetadataURI: ts.URL, TaskMetadataURI: ts.URL + "/task"})
 			assert.NoError(t, err)
 
 			gotCPU, err := ecsTask.GetMaxProcs()
@@ -231,7 +231,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 			ts := tt.testServer(tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
+			ecsTask, err := task.New(config.Config{ContainerMetadataURI: ts.URL, TaskMetadataURI: ts.URL + "/task"})
 			assert.NoError(t, err)
 
 			gotCPU, err := ecsTask.GetMaxProcs()
@@ -290,6 +290,22 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 				return httptest.NewServer(mux)
 			},
 		},
+		{
+			name:      "should raise error when faile to unmarshal ECS container meta",
+			wantError: "failed to get ECS container meta: read failed",
+			testServer: func(_, _ int) *httptest.Server {
+				mux := http.NewServeMux()
+				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte("partial-data"))
+					conn, _, _ := w.(http.Hijacker).Hijack()
+					conn.Close()
+				})
+				mux.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, 1, 1024)))
+				})
+				return httptest.NewServer(mux)
+			},
+		},
 	}
 
 	for _, tt := range tableTest {
@@ -299,7 +315,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
+			ecsTask, err := task.New(config.Config{ContainerMetadataURI: ts.URL, TaskMetadataURI: ts.URL + "/task"})
 			assert.NoError(t, err)
 
 			_, err = ecsTask.GetMaxProcs()

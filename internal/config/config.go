@@ -22,6 +22,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -33,13 +34,14 @@ func New() Config {
 	uri := metadataURI()
 
 	return Config{
-		MetadataURI: uri,
+		TaskMetadataURI:      fmt.Sprintf("%s/task", uri),
+		ContainerMetadataURI: uri,
 		Client: Client{
 			HTTPTimeout:           time.Second * 5,
 			DialTimeout:           time.Second,
 			MaxIdleConns:          1,
 			MaxIdleConnsPerHost:   1,
-			DisableKeepAlives:     true,
+			DisableKeepAlives:     false, // keep connection alive for subsequent requests.
 			IdleConnTimeout:       time.Second,
 			TLSHandshakeTimeout:   time.Second,
 			ResponseHeaderTimeout: time.Second,
@@ -54,8 +56,9 @@ func metadataURI() string {
 
 // Config represents the packagge configuration.
 type Config struct {
-	MetadataURI string
-	Client      Client
+	ContainerMetadataURI string
+	TaskMetadataURI      string
+	Client               Client
 }
 
 // Client represents the HTTP client configuration.
