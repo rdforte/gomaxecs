@@ -37,20 +37,12 @@ type Task struct {
 }
 
 // New returns a new Task.
-func New(cfg config.Config) (*Task, error) {
-	if len(cfg.ContainerMetadataURI) == 0 {
-		return nil, fmt.Errorf("no container URI provided")
-	}
-
-	if len(cfg.TaskMetadataURI) == 0 {
-		return nil, fmt.Errorf("no task URI provided")
-	}
-
+func New(cfg config.Config) *Task {
 	return &Task{
 		cfg.TaskMetadataURI,
 		cfg.ContainerMetadataURI,
 		client.New(cfg.Client),
-	}, nil
+	}
 }
 
 // GetMaxProcs is responsible for getting the max number of processors, or

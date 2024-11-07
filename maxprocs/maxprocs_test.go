@@ -60,13 +60,6 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			},
 		},
 		{
-			name:    "should log error when task initialisation fails",
-			wantLog: "task initialised failed. Unable to set GOMAXPROCS",
-			metaURI: func() string {
-				return ""
-			},
-		},
-		{
 			name:    "should log error when fail to get max procs",
 			wantLog: "failed to set GOMAXPROC",
 			metaURI: func() string {
