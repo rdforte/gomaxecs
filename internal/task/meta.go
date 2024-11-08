@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 )
 
 // TaskMeta represents the ECS Task Metadata.
@@ -54,6 +55,10 @@ func (t *Task) getContainerMeta() (Container, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return container, newStatusError(resp.StatusCode)
+	}
+
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return container, fmt.Errorf("read failed: %w", err)
@@ -79,6 +84,10 @@ func (t *Task) getTaskMeta() (TaskMeta, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return task, newStatusError(resp.StatusCode)
+	}
+
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return task, fmt.Errorf("read failed: %w", err)
@@ -90,4 +99,16 @@ func (t *Task) getTaskMeta() (TaskMeta, error) {
 	}
 
 	return task, nil
+}
+
+func newStatusError(status int) error {
+	return &statusError{status}
+}
+
+type statusError struct {
+	status int
+}
+
+func (e *statusError) Error() string {
+	return fmt.Sprintf("request failed, status code: %d", e.status)
 }

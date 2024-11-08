@@ -284,8 +284,8 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			},
 		},
 		{
-			name:      "should raise error when ECS container endpoint returns an error",
-			wantError: "failed to get ECS container meta:",
+			name:      "should raise error when ECS container endpoint is not 200 OK",
+			wantError: "failed to get ECS container meta: request failed, status code: 500",
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
@@ -303,8 +303,8 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			},
 		},
 		{
-			name:      "should raise error when ECS task endpoint returns an error",
-			wantError: "failed to get ECS task meta:",
+			name:      "should raise error when ECS task endpoint is not 200 OK",
+			wantError: "failed to get ECS task meta: request failed, status code: 500",
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
