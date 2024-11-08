@@ -119,8 +119,24 @@ issues:
       linters:
         - funlen
         - dupl # Duplicated code is allowed in tests.
-        - gochecknoglobals
+        - gochecknoglobals # Globals are allowed in tests.
         - containedctx
         - maintidx
         - ireturn
         - cyclop
+    - path: gomaxecs.go
+      linters:
+        - gochecknoinits # enable init function for setting GOMAXPROCS.
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        allow:
+          - "$gostd"
+          - "github.com/stretchr/testify"
+          - "github.com/rdforte/gomaxecs"
+  tagliatelle:
+    case:
+      rules:
+        json: goPascal

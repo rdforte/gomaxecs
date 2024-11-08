@@ -317,7 +317,8 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 
 				mux := http.NewServeMux()
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+					assert.NoError(t, err)
 				})
 				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
@@ -339,7 +340,8 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 
 				mux := http.NewServeMux()
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte("partial-data"))
+					_, err := w.Write([]byte("partial-data"))
+					assert.NoError(t, err)
 					conn, _, _ := w.(http.Hijacker).Hijack()
 					conn.Close()
 				})
@@ -363,12 +365,14 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 
 				mux := http.NewServeMux()
 				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte("partial-data"))
+					_, err := w.Write([]byte("partial-data"))
+					assert.NoError(t, err)
 					conn, _, _ := w.(http.Hijacker).Hijack()
 					conn.Close()
 				})
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+					assert.NoError(t, err)
 				})
 				ts := httptest.NewServer(mux)
 
@@ -387,10 +391,12 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 
 				mux := http.NewServeMux()
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte("invlaid-json"))
+					_, err := w.Write([]byte("invlaid-json"))
+					assert.NoError(t, err)
 				})
 				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, 1, 1024)))
+					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, 1, 1024)))
+					assert.NoError(t, err)
 				})
 				ts := httptest.NewServer(mux)
 
@@ -409,7 +415,8 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 
 				mux := http.NewServeMux()
 				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte("invlaid-json"))
+					_, err := w.Write([]byte("invlaid-json"))
+					assert.NoError(t, err)
 				})
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))

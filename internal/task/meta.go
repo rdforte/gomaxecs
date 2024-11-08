@@ -35,7 +35,7 @@ type TaskMeta struct {
 
 // Container represents the ECS Container Metadata.
 type Container struct {
-	DockerID string `json:"DockerId"`
+	DockerID string `json:"DockerId"` //nolint:tagliatelle // ECS Agent inconsistency. All fields adhere to goPascal but this one.
 	Limits   Limit  `json:"Limits"`
 }
 
