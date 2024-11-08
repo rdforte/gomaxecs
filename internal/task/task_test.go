@@ -259,6 +259,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			taskCPU:      0,
 			testServer: func(t *testing.T, containerCPU, taskCPU int) (string, string) {
 				t.Helper()
+
 				ts := testServerContainerLimit(containerCPU, taskCPU)
 
 				t.Cleanup(func() {
@@ -274,6 +275,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			taskCPU:   0,
 			testServer: func(t *testing.T, _, taskCPU int) (string, string) {
 				t.Helper()
+
 				ts := testServerTaskLimit(taskCPU)
 
 				t.Cleanup(func() {
