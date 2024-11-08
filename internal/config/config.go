@@ -22,19 +22,21 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"time"
 )
 
-const metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
+const (
+	metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
+	taskPath   = "/task"
+)
 
 func New() Config {
 	uri := metadataURI()
 
 	return Config{
-		TaskMetadataURI:      fmt.Sprintf("%s/task", uri),
+		TaskMetadataURI:      uri + taskPath,
 		ContainerMetadataURI: uri,
 		Client: Client{
 			HTTPTimeout:           time.Second * 5,
