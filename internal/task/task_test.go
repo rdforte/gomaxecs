@@ -36,6 +36,7 @@ const taskMetaPath = "/task"
 
 func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 	t.Parallel()
+
 	tableTest := []struct {
 		name         string
 		wantCPU      int
@@ -161,6 +162,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
@@ -176,6 +178,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 
 func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 	t.Parallel()
+
 	tableTest := []struct {
 		name       string
 		wantCPU    int
@@ -230,6 +233,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			ts := tt.testServer(tt.taskCPU)
 			defer ts.Close()
 
@@ -245,6 +249,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 
 func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 	t.Parallel()
+
 	tableTest := []struct {
 		name         string
 		wantError    string
