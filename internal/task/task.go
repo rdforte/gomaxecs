@@ -25,21 +25,24 @@ package task
 import (
 	"fmt"
 
+	"github.com/rdforte/gomaxecs/internal/client"
 	"github.com/rdforte/gomaxecs/internal/config"
 )
 
 // Task represents a task.
 type Task struct {
-	cfg config.Config
+	taskMetadataURI      string
+	containerMetadataURI string
+	client               *client.Client
 }
 
 // New returns a new Task.
-func New(cfg config.Config) (*Task, error) {
-	if len(cfg.MetadataURI) == 0 {
-		return nil, fmt.Errorf("no container URI provided")
+func New(cfg config.Config) *Task {
+	return &Task{
+		cfg.TaskMetadataURI,
+		cfg.ContainerMetadataURI,
+		client.New(cfg.Client),
 	}
-
-	return &Task{cfg}, nil
 }
 
 // GetMaxProcs is responsible for getting the max number of processors, or

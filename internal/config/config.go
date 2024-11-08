@@ -27,19 +27,23 @@ import (
 	"time"
 )
 
-const metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
+const (
+	metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
+	taskPath   = "/task"
+)
 
 func New() Config {
 	uri := metadataURI()
 
 	return Config{
-		MetadataURI: uri,
+		TaskMetadataURI:      uri + taskPath,
+		ContainerMetadataURI: uri,
 		Client: Client{
 			HTTPTimeout:           time.Second * 5,
 			DialTimeout:           time.Second,
 			MaxIdleConns:          1,
 			MaxIdleConnsPerHost:   1,
-			DisableKeepAlives:     true,
+			DisableKeepAlives:     false, // keep connection alive for subsequent requests.
 			IdleConnTimeout:       time.Second,
 			TLSHandshakeTimeout:   time.Second,
 			ResponseHeaderTimeout: time.Second,
@@ -54,8 +58,9 @@ func metadataURI() string {
 
 // Config represents the packagge configuration.
 type Config struct {
-	MetadataURI string
-	Client      Client
+	ContainerMetadataURI string
+	TaskMetadataURI      string
+	Client               Client
 }
 
 // Client represents the HTTP client configuration.

@@ -32,8 +32,11 @@ import (
 	"github.com/rdforte/gomaxecs/internal/task"
 )
 
+const taskMetaPath = "/task"
+
 func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 	t.Parallel()
+
 	tableTest := []struct {
 		name         string
 		wantCPU      int
@@ -159,11 +162,12 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
-			assert.NoError(t, err)
+			containerURI, taskURI := buildMetaEndpoints(ts)
+			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
 
 			gotCPU, err := ecsTask.GetMaxProcs()
 			assert.NoError(t, err)
@@ -174,6 +178,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 
 func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 	t.Parallel()
+
 	tableTest := []struct {
 		name       string
 		wantCPU    int
@@ -228,11 +233,12 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			ts := tt.testServer(tt.taskCPU)
 			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
-			assert.NoError(t, err)
+			containerURI, taskURI := buildMetaEndpoints(ts)
+			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
 
 			gotCPU, err := ecsTask.GetMaxProcs()
 			assert.NoError(t, err)
@@ -243,51 +249,216 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 
 func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 	t.Parallel()
+
 	tableTest := []struct {
 		name         string
 		wantError    string
 		containerCPU int
 		taskCPU      int
-		testServer   func(containerCPU, taskCPU int) *httptest.Server
+		testServer   func(t *testing.T, containerCPU, taskCPU int) (containerMetaURI, taskMetaURI string)
 	}{
 		{
 			name:         "should raise error when task CPU limit is 0 and container CPU limit is 0",
 			wantError:    "no CPU limit found for task or container",
 			containerCPU: 0,
 			taskCPU:      0,
-			testServer:   testServerContainerLimit,
+			testServer: func(t *testing.T, containerCPU, taskCPU int) (string, string) {
+				t.Helper()
+
+				ts := testServerContainerLimit(containerCPU, taskCPU)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
+			},
 		},
 		{
 			name:      "should raise error when task CPU limit is 0 and container CPU limit does not exist",
 			wantError: "no CPU limit found for task or container",
 			taskCPU:   0,
-			testServer: func(_, taskCPU int) *httptest.Server {
-				return testServerTaskLimit(taskCPU)
+			testServer: func(t *testing.T, _, taskCPU int) (string, string) {
+				t.Helper()
+
+				ts := testServerTaskLimit(taskCPU)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
 			},
 		},
 		{
-			name:      "should raise error when ECS container endpoint returns an error",
-			wantError: "failed to get ECS container meta:",
-			testServer: func(_, _ int) *httptest.Server {
+			name:      "should raise error when ECS container endpoint is not 200 OK",
+			wantError: "failed to get ECS container meta: request failed, status code: 500",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
 				mux := http.NewServeMux()
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 				})
-				return httptest.NewServer(mux)
+				ts := httptest.NewServer(mux)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
 			},
 		},
 		{
-			name:      "should raise error when ECS task endpoint returns an error",
-			wantError: "failed to get ECS task meta:",
-			testServer: func(_, _ int) *httptest.Server {
+			name:      "should raise error when ECS task endpoint is not 200 OK",
+			wantError: "failed to get ECS task meta: request failed, status code: 500",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
 				mux := http.NewServeMux()
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
 				})
-				mux.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 				})
-				return httptest.NewServer(mux)
+				ts := httptest.NewServer(mux)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
+			},
+		},
+		{
+			name:      "should raise error when fail to read ECS container meta",
+			wantError: "failed to get ECS container meta: read failed",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
+				mux := http.NewServeMux()
+				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte("partial-data"))
+					conn, _, _ := w.(http.Hijacker).Hijack()
+					conn.Close()
+				})
+				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, 1, 1024)))
+				})
+				ts := httptest.NewServer(mux)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
+			},
+		},
+		{
+			name:      "should raise error when fail to read ECS task meta",
+			wantError: "failed to get ECS task meta: read failed",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
+				mux := http.NewServeMux()
+				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte("partial-data"))
+					conn, _, _ := w.(http.Hijacker).Hijack()
+					conn.Close()
+				})
+				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+				})
+				ts := httptest.NewServer(mux)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
+			},
+		},
+		{
+			name:      "should raise error when fail to unmarshal ECS container meta",
+			wantError: "failed to get ECS container meta: unmarshal failed",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
+				mux := http.NewServeMux()
+				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte("invlaid-json"))
+				})
+				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, 1, 1024)))
+				})
+				ts := httptest.NewServer(mux)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
+			},
+		},
+		{
+			name:      "should raise error when fail to unmarshal ECS task meta",
+			wantError: "failed to get ECS task meta: unmarshal failed",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
+				mux := http.NewServeMux()
+				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte("invlaid-json"))
+				})
+				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+				})
+				ts := httptest.NewServer(mux)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				return buildMetaEndpoints(ts)
+			},
+		},
+		{
+			name:      "should raise error when fail to get ECS container meta",
+			wantError: "failed to get ECS container meta: request failed",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
+				cpu := 1
+				ts := testServerTaskLimit(cpu)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				_, taskURI := buildMetaEndpoints(ts)
+				containerURI := "invalid-uri"
+
+				return containerURI, taskURI
+			},
+		},
+		{
+			name:      "should raise error when fail to get ECS task meta",
+			wantError: "failed to get ECS task meta: request failed",
+			testServer: func(t *testing.T, _, _ int) (string, string) {
+				t.Helper()
+
+				cpu := 1
+				ts := testServerTaskLimit(cpu)
+
+				t.Cleanup(func() {
+					ts.Close()
+				})
+
+				containerURI, _ := buildMetaEndpoints(ts)
+				taskURI := "invalid-uri"
+
+				return containerURI, taskURI
 			},
 		},
 	}
@@ -296,13 +467,12 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
-			defer ts.Close()
 
-			ecsTask, err := task.New(config.Config{MetadataURI: ts.URL})
-			assert.NoError(t, err)
+			containerMetaURI, taskMetaURI := tt.testServer(t, tt.containerCPU, tt.taskCPU)
 
-			_, err = ecsTask.GetMaxProcs()
+			ecsTask := task.New(config.Config{ContainerMetadataURI: containerMetaURI, TaskMetadataURI: taskMetaURI})
+
+			_, err := ecsTask.GetMaxProcs()
 			assert.ErrorContains(t, err, tt.wantError)
 		})
 	}
@@ -313,7 +483,7 @@ func testServerContainerLimit(containerCPU, taskCPU int) *httptest.Server {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
 	})
-	mux.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, taskCPU, containerCPU)))
 	})
 	return httptest.NewServer(mux)
@@ -323,4 +493,8 @@ func testServerTaskLimit(taskCPU int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
 	}))
+}
+
+func buildMetaEndpoints(ts *httptest.Server) (containerMetaURI, taskMetaURI string) {
+	return ts.URL, ts.URL + taskMetaPath
 }

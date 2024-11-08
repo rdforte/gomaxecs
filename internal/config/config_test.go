@@ -1,7 +1,7 @@
 package config_test
 
 import (
-	"strings"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,20 +12,21 @@ import (
 
 func TestConfig_LoadConfiguration(t *testing.T) {
 	metaURIEnv := "ECS_CONTAINER_METADATA_URI_V4"
-	containerID := "container-id"
-	uri := strings.Join([]string{"mock-ecs-metadata-uri", "/", containerID}, "")
+	uri := "mock-ecs-metadata-uri/"
 	t.Setenv(metaURIEnv, uri)
 
 	cfg := config.New()
 
+	wantURI := "mock-ecs-metadata-uri"
 	wantCfg := config.Config{
-		MetadataURI: uri,
+		ContainerMetadataURI: wantURI,
+		TaskMetadataURI:      fmt.Sprintf("%s/task", wantURI),
 		Client: config.Client{
 			HTTPTimeout:           time.Second * 5,
 			DialTimeout:           time.Second,
 			MaxIdleConns:          1,
 			MaxIdleConnsPerHost:   1,
-			DisableKeepAlives:     true,
+			DisableKeepAlives:     false,
 			IdleConnTimeout:       time.Second,
 			TLSHandshakeTimeout:   time.Second,
 			ResponseHeaderTimeout: time.Second,

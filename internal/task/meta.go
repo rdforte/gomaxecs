@@ -24,8 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"github.com/rdforte/gomaxecs/internal/client"
+	"net/http"
 )
 
 // TaskMeta represents the ECS Task Metadata.
@@ -50,13 +49,15 @@ type Limit struct {
 func (t *Task) getContainerMeta() (Container, error) {
 	var container Container
 
-	client := client.New(t.cfg.Client)
-
-	resp, err := client.Get(t.cfg.MetadataURI)
+	resp, err := t.client.Get(t.containerMetadataURI)
 	if err != nil {
 		return container, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return container, newStatusError(resp.StatusCode)
+	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -77,13 +78,15 @@ func (t *Task) getContainerMeta() (Container, error) {
 func (t *Task) getTaskMeta() (TaskMeta, error) {
 	var task TaskMeta
 
-	url := fmt.Sprintf("%s/task", t.cfg.MetadataURI)
-	client := client.New(t.cfg.Client)
-	resp, err := client.Get(url)
+	resp, err := t.client.Get(t.taskMetadataURI)
 	if err != nil {
 		return task, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return task, newStatusError(resp.StatusCode)
+	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -96,4 +99,16 @@ func (t *Task) getTaskMeta() (TaskMeta, error) {
 	}
 
 	return task, nil
+}
+
+func newStatusError(status int) error {
+	return &statusError{status}
+}
+
+type statusError struct {
+	status int
+}
+
+func (e *statusError) Error() string {
+	return fmt.Sprintf("request failed, status code: %d", e.status)
 }
