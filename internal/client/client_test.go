@@ -34,7 +34,7 @@ import (
 func TestClient_Get_Success(t *testing.T) {
 	t.Parallel()
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -59,7 +59,7 @@ func TestClient_Get_ClientFailure(t *testing.T) {
 func TestClient_Get_ResBodyFailure(t *testing.T) {
 	t.Parallel()
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte("partial-data"))
 		assert.NoError(t, err)
 		if hijacker, ok := w.(http.Hijacker); ok {

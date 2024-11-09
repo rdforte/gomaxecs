@@ -139,3 +139,10 @@ linters-settings:
     min-name-length: 2
   nlreturn:
     block-size: 2
+  ireturn:
+    allow:
+      - generic
+      - anon
+      - error
+      - empty
+      - stdlib

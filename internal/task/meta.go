@@ -29,39 +29,40 @@ import (
 )
 
 // TaskMeta represents the ECS Task Metadata.
-type TaskMeta struct {
-	Containers []Container `json:"Containers"`
-	Limits     Limit       `json:"Limits"` // this is optional in the response
+type taskMeta struct {
+	Containers []container `json:"Containers"`
+	Limits     limit       `json:"Limits"` // this is optional in the response
 }
 
 // Container represents the ECS Container Metadata.
-type Container struct {
+type container struct {
 	//nolint:tagliatelle // ECS Agent inconsistency. All fields adhere to goPascal but this one.
 	DockerID string `json:"DockerId"`
-	Limits   Limit  `json:"Limits"`
+	Limits   limit  `json:"Limits"`
 }
 
 // Limit contains the CPU limit.
-type Limit struct {
+type limit struct {
 	CPU float64 `json:"CPU"`
 }
 
 // Grab the container metadata from the ECS Metadata endpoint.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html
-func (t *Task) getContainerMeta() (Container, error) {
-	return getMeta[Container](t.client, t.containerMetadataURI)
+func (t *Task) getContainerMeta() (container, error) {
+	return getMeta[container](t.client, t.containerMetadataURI)
 }
 
 // Grab the task metadata from the ECS Metadata endpoint + `/task`
 // This will also include the container metadata.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html
 // #task-metadata-endpoint-v4-example-task-metadata-response.
-func (t *Task) getTaskMeta() (TaskMeta, error) {
-	return getMeta[TaskMeta](t.client, t.taskMetadataURI)
+func (t *Task) getTaskMeta() (taskMeta, error) {
+	return getMeta[taskMeta](t.client, t.taskMetadataURI)
 }
 
 func getMeta[T any](client *client.Client, url string) (T, error) {
 	var res T
+
 	resp, err := client.Get(url)
 	if err != nil {
 		return res, fmt.Errorf("request failed: %w", err)
