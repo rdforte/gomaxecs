@@ -23,11 +23,19 @@
 package task
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rdforte/gomaxecs/internal/client"
 	"github.com/rdforte/gomaxecs/internal/config"
 )
+
+const (
+	cpuUnits = 10
+)
+
+var errNoCPULimit = errors.New("no CPU limit found for task or container")
 
 // Task represents a task.
 type Task struct {
@@ -51,23 +59,24 @@ func New(cfg config.Config) *Task {
 // Task CPU limit is less than 1, the max threads returned is 1.
 // If no CPU limit is found for the container, then the max number of threads
 // returned is the number of CPU's for the ECS Task.
-func (t *Task) GetMaxProcs() (int, error) {
-	container, err := t.getContainerMeta()
+func (t *Task) GetMaxProcs(ctx context.Context) (int, error) {
+	container, err := t.getContainerMeta(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get ECS container meta: %w", err)
 	}
 
-	task, err := t.getTaskMeta()
+	task, err := t.getTaskMeta(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get ECS task meta: %w", err)
 	}
 
 	// Either the container limit or the task limit must be set
 	if container.Limits.CPU == 0 && task.Limits.CPU == 0 {
-		return 0, fmt.Errorf("no CPU limit found for task or container")
+		return 0, errNoCPULimit
 	}
 
 	var containerCPULimit float64
+
 	for _, taskContainer := range task.Containers {
 		if container.DockerID == taskContainer.DockerID {
 			containerCPULimit = taskContainer.Limits.CPU
@@ -79,7 +88,8 @@ func (t *Task) GetMaxProcs() (int, error) {
 		return max(int(task.Limits.CPU), minThreads), nil
 	}
 
-	cpu := int(containerCPULimit) >> 10
+	cpu := int(containerCPULimit) >> cpuUnits
+
 	taskCPULimit := int(task.Limits.CPU)
 	if taskCPULimit > 0 {
 		return min(taskCPULimit, cpu), nil

@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -20,7 +19,7 @@ func TestConfig_LoadConfiguration(t *testing.T) {
 	wantURI := "mock-ecs-metadata-uri"
 	wantCfg := config.Config{
 		ContainerMetadataURI: wantURI,
-		TaskMetadataURI:      fmt.Sprintf("%s/task", wantURI),
+		TaskMetadataURI:      wantURI + "/task",
 		Client: config.Client{
 			HTTPTimeout:           time.Second * 5,
 			DialTimeout:           time.Second,

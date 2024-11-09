@@ -28,8 +28,9 @@ import (
 )
 
 const (
-	metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
-	taskPath   = "/task"
+	metaURIEnv  = "ECS_CONTAINER_METADATA_URI_V4"
+	taskPath    = "/task"
+	httpTimeout = 5
 )
 
 func New() Config {
@@ -39,7 +40,7 @@ func New() Config {
 		TaskMetadataURI:      uri + taskPath,
 		ContainerMetadataURI: uri,
 		Client: Client{
-			HTTPTimeout:           time.Second * 5,
+			HTTPTimeout:           time.Second * httpTimeout,
 			DialTimeout:           time.Second,
 			MaxIdleConns:          1,
 			MaxIdleConnsPerHost:   1,

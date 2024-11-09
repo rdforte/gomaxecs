@@ -1,6 +1,7 @@
 package maxprocs
 
 import (
+	"context"
 	"log"
 	"runtime"
 
@@ -13,7 +14,7 @@ func Set(log *log.Logger) {
 	cfg := config.New()
 	t := task.New(cfg)
 
-	procs, err := t.GetMaxProcs()
+	procs, err := t.GetMaxProcs(context.Background())
 	if err != nil {
 		log.Println("failed to set GOMAXPROCS:", err)
 		return
