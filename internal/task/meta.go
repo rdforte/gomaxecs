@@ -23,8 +23,9 @@ package task
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+
+	"github.com/rdforte/gomaxecs/internal/client"
 )
 
 // TaskMeta represents the ECS Task Metadata.
@@ -35,7 +36,8 @@ type TaskMeta struct {
 
 // Container represents the ECS Container Metadata.
 type Container struct {
-	DockerID string `json:"DockerId"` //nolint:tagliatelle // ECS Agent inconsistency. All fields adhere to goPascal but this one.
+	//nolint:tagliatelle // ECS Agent inconsistency. All fields adhere to goPascal but this one.
+	DockerID string `json:"DockerId"`
 	Limits   Limit  `json:"Limits"`
 }
 
@@ -47,58 +49,34 @@ type Limit struct {
 // Grab the container metadata from the ECS Metadata endpoint.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html
 func (t *Task) getContainerMeta() (Container, error) {
-	var container Container
-
-	resp, err := t.client.Get(t.containerMetadataURI)
-	if err != nil {
-		return container, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return container, newStatusError(resp.StatusCode)
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return container, fmt.Errorf("read failed: %w", err)
-	}
-
-	err = json.Unmarshal(data, &container)
-	if err != nil {
-		return container, fmt.Errorf("unmarshal failed: %w", err)
-	}
-
-	return container, nil
+	return getMeta[Container](t.client, t.containerMetadataURI)
 }
 
 // Grab the task metadata from the ECS Metadata endpoint + `/task`
 // This will also include the container metadata.
-// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html#task-metadata-endpoint-v4-example-task-metadata-response
+// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html
+// #task-metadata-endpoint-v4-example-task-metadata-response.
 func (t *Task) getTaskMeta() (TaskMeta, error) {
-	var task TaskMeta
+	return getMeta[TaskMeta](t.client, t.taskMetadataURI)
+}
 
-	resp, err := t.client.Get(t.taskMetadataURI)
+func getMeta[T any](client *client.Client, url string) (T, error) {
+	var res T
+	resp, err := client.Get(url)
 	if err != nil {
-		return task, fmt.Errorf("request failed: %w", err)
+		return res, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return task, newStatusError(resp.StatusCode)
+		return res, newStatusError(resp.StatusCode)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	err = json.Unmarshal(resp.Body, &res)
 	if err != nil {
-		return task, fmt.Errorf("read failed: %w", err)
+		return res, fmt.Errorf("unmarshal failed: %w", err)
 	}
 
-	err = json.Unmarshal(data, &task)
-	if err != nil {
-		return task, fmt.Errorf("unmarshal failed: %w", err)
-	}
-
-	return task, nil
+	return res, nil
 }
 
 func newStatusError(status int) error {

@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/rdforte/gomaxecs/internal/config"
 	"github.com/rdforte/gomaxecs/internal/task"
@@ -42,7 +43,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		wantCPU      int
 		containerCPU int
 		taskCPU      int
-		testServer   func(containerCPU, taskCPU int) *httptest.Server
+		testServer   func(t *testing.T, containerCPU, taskCPU int) *httptest.Server
 	}{
 		{
 			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 1024 vCPU",
@@ -159,18 +160,17 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 	}
 
 	for _, tt := range tableTest {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := tt.testServer(tt.containerCPU, tt.taskCPU)
+			ts := tt.testServer(t, tt.containerCPU, tt.taskCPU)
 			defer ts.Close()
 
 			containerURI, taskURI := buildMetaEndpoints(ts)
 			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
 
 			gotCPU, err := ecsTask.GetMaxProcs()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantCPU, gotCPU)
 		})
 	}
@@ -183,7 +183,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 		name       string
 		wantCPU    int
 		taskCPU    int
-		testServer func(taskCPU int) *httptest.Server
+		testServer func(t *testing.T, taskCPU int) *httptest.Server
 	}{
 		{
 			name:       "should get cpu of 1 when task CPU limit is 0.25 and no container CPU limit set",
@@ -230,18 +230,17 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 	}
 
 	for _, tt := range tableTest {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := tt.testServer(tt.taskCPU)
+			ts := tt.testServer(t, tt.taskCPU)
 			defer ts.Close()
 
 			containerURI, taskURI := buildMetaEndpoints(ts)
 			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
 
 			gotCPU, err := ecsTask.GetMaxProcs()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantCPU, gotCPU)
 		})
 	}
@@ -265,7 +264,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, containerCPU, taskCPU int) (string, string) {
 				t.Helper()
 
-				ts := testServerContainerLimit(containerCPU, taskCPU)
+				ts := testServerContainerLimit(t, containerCPU, taskCPU)
 
 				t.Cleanup(func() {
 					ts.Close()
@@ -281,7 +280,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, _, taskCPU int) (string, string) {
 				t.Helper()
 
-				ts := testServerTaskLimit(taskCPU)
+				ts := testServerTaskLimit(t, taskCPU)
 
 				t.Cleanup(func() {
 					ts.Close()
@@ -333,57 +332,6 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			},
 		},
 		{
-			name:      "should raise error when fail to read ECS container meta",
-			wantError: "failed to get ECS container meta: read failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
-				t.Helper()
-
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					_, err := w.Write([]byte("partial-data"))
-					assert.NoError(t, err)
-					conn, _, _ := w.(http.Hijacker).Hijack()
-					conn.Close()
-				})
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, 1, 1024)))
-				})
-				ts := httptest.NewServer(mux)
-
-				t.Cleanup(func() {
-					ts.Close()
-				})
-
-				return buildMetaEndpoints(ts)
-			},
-		},
-		{
-			name:      "should raise error when fail to read ECS task meta",
-			wantError: "failed to get ECS task meta: read failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
-				t.Helper()
-
-				mux := http.NewServeMux()
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
-					_, err := w.Write([]byte("partial-data"))
-					assert.NoError(t, err)
-					conn, _, _ := w.(http.Hijacker).Hijack()
-					conn.Close()
-				})
-				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
-					assert.NoError(t, err)
-				})
-				ts := httptest.NewServer(mux)
-
-				t.Cleanup(func() {
-					ts.Close()
-				})
-
-				return buildMetaEndpoints(ts)
-			},
-		},
-		{
 			name:      "should raise error when fail to unmarshal ECS container meta",
 			wantError: "failed to get ECS container meta: unmarshal failed",
 			testServer: func(t *testing.T, _, _ int) (string, string) {
@@ -395,7 +343,11 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 					assert.NoError(t, err)
 				})
 				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, 1, 1024)))
+					_, err := w.Write([]byte(fmt.Sprintf(
+						`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`,
+						1,
+						1024,
+					)))
 					assert.NoError(t, err)
 				})
 				ts := httptest.NewServer(mux)
@@ -419,7 +371,8 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 					assert.NoError(t, err)
 				})
 				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
+					assert.NoError(t, err)
 				})
 				ts := httptest.NewServer(mux)
 
@@ -437,7 +390,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 				t.Helper()
 
 				cpu := 1
-				ts := testServerTaskLimit(cpu)
+				ts := testServerTaskLimit(t, cpu)
 
 				t.Cleanup(func() {
 					ts.Close()
@@ -456,7 +409,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 				t.Helper()
 
 				cpu := 1
-				ts := testServerTaskLimit(cpu)
+				ts := testServerTaskLimit(t, cpu)
 
 				t.Cleanup(func() {
 					ts.Close()
@@ -471,7 +424,6 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 	}
 
 	for _, tt := range tableTest {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -485,20 +437,32 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 	}
 }
 
-func testServerContainerLimit(containerCPU, taskCPU int) *httptest.Server {
+func testServerContainerLimit(t *testing.T, containerCPU, taskCPU int) *httptest.Server {
+	t.Helper()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+		assert.NoError(t, err)
 	})
 	mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`, taskCPU, containerCPU)))
+		_, err := w.Write([]byte(fmt.Sprintf(
+			`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`,
+			taskCPU,
+			containerCPU,
+		)))
+		assert.NoError(t, err)
 	})
+
 	return httptest.NewServer(mux)
 }
 
-func testServerTaskLimit(taskCPU int) *httptest.Server {
+func testServerTaskLimit(t *testing.T, taskCPU int) *httptest.Server {
+	t.Helper()
+
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
+		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
+		assert.NoError(t, err)
 	}))
 }
 

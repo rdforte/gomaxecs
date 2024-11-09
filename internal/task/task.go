@@ -23,11 +23,18 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/rdforte/gomaxecs/internal/client"
 	"github.com/rdforte/gomaxecs/internal/config"
 )
+
+const (
+	cpuUnits = 10
+)
+
+var errNoCPULimit = errors.New("no CPU limit found for task or container")
 
 // Task represents a task.
 type Task struct {
@@ -64,10 +71,11 @@ func (t *Task) GetMaxProcs() (int, error) {
 
 	// Either the container limit or the task limit must be set
 	if container.Limits.CPU == 0 && task.Limits.CPU == 0 {
-		return 0, fmt.Errorf("no CPU limit found for task or container")
+		return 0, errNoCPULimit
 	}
 
 	var containerCPULimit float64
+
 	for _, taskContainer := range task.Containers {
 		if container.DockerID == taskContainer.DockerID {
 			containerCPULimit = taskContainer.Limits.CPU
@@ -79,7 +87,8 @@ func (t *Task) GetMaxProcs() (int, error) {
 		return max(int(task.Limits.CPU), minThreads), nil
 	}
 
-	cpu := int(containerCPULimit) >> 10
+	cpu := int(containerCPULimit) >> cpuUnits
+
 	taskCPULimit := int(task.Limits.CPU)
 	if taskCPULimit > 0 {
 		return min(taskCPULimit, cpu), nil

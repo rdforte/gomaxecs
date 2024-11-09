@@ -20,8 +20,6 @@
 
 package client_test
 
-// TODO: Implement tests
-
 import (
 	"net/http"
 	"net/http/httptest"
@@ -34,6 +32,8 @@ import (
 )
 
 func TestClient_Get_Success(t *testing.T) {
+	t.Parallel()
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -42,14 +42,36 @@ func TestClient_Get_Success(t *testing.T) {
 	c := client.New(cfg)
 
 	_, err := c.Get(ts.URL)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
-func TestClient_Get_Failure(t *testing.T) {
-	cfg := config.Client{}
+func TestClient_Get_ClientFailure(t *testing.T) {
+	t.Parallel()
 
+	cfg := config.Client{}
 	c := client.New(cfg)
 
 	_, err := c.Get("invalid-url")
-	assert.NotNil(t, err)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to perform HTTP GET request")
+}
+
+func TestClient_Get_ResBodyFailure(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte("partial-data"))
+		assert.NoError(t, err)
+		if hijacker, ok := w.(http.Hijacker); ok {
+			conn, _, _ := hijacker.Hijack()
+			conn.Close()
+		}
+	}))
+
+	cfg := config.Client{}
+	c := client.New(cfg)
+
+	_, err := c.Get(ts.URL)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read response body")
 }
