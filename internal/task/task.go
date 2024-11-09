@@ -23,6 +23,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -58,13 +59,13 @@ func New(cfg config.Config) *Task {
 // Task CPU limit is less than 1, the max threads returned is 1.
 // If no CPU limit is found for the container, then the max number of threads
 // returned is the number of CPU's for the ECS Task.
-func (t *Task) GetMaxProcs() (int, error) {
-	container, err := t.getContainerMeta()
+func (t *Task) GetMaxProcs(ctx context.Context) (int, error) {
+	container, err := t.getContainerMeta(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get ECS container meta: %w", err)
 	}
 
-	task, err := t.getTaskMeta()
+	task, err := t.getTaskMeta(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get ECS task meta: %w", err)
 	}

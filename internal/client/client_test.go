@@ -21,11 +21,13 @@
 package client_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/rdforte/gomaxecs/internal/client"
 	"github.com/rdforte/gomaxecs/internal/config"
@@ -41,8 +43,19 @@ func TestClient_Get_Success(t *testing.T) {
 	cfg := config.Client{}
 	c := client.New(cfg)
 
-	_, err := c.Get(ts.URL)
+	_, err := c.Get(context.Background(), ts.URL)
 	assert.NoError(t, err)
+}
+
+func TestClient_Get_BuildRequestFailure(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Client{}
+	c := client.New(cfg)
+
+	_, err := c.Get(context.Background(), "://invalid-url")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create HTTP request")
 }
 
 func TestClient_Get_ClientFailure(t *testing.T) {
@@ -51,8 +64,8 @@ func TestClient_Get_ClientFailure(t *testing.T) {
 	cfg := config.Client{}
 	c := client.New(cfg)
 
-	_, err := c.Get("invalid-url")
-	assert.Error(t, err)
+	_, err := c.Get(context.Background(), "invalid-url")
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to perform HTTP GET request")
 }
 
@@ -62,6 +75,7 @@ func TestClient_Get_ResBodyFailure(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte("partial-data"))
 		assert.NoError(t, err)
+
 		if hijacker, ok := w.(http.Hijacker); ok {
 			conn, _, _ := hijacker.Hijack()
 			conn.Close()
@@ -71,7 +85,7 @@ func TestClient_Get_ResBodyFailure(t *testing.T) {
 	cfg := config.Client{}
 	c := client.New(cfg)
 
-	_, err := c.Get(ts.URL)
-	assert.Error(t, err)
+	_, err := c.Get(context.Background(), ts.URL)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read response body")
 }

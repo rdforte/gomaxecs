@@ -22,6 +22,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -56,8 +57,13 @@ type Client struct {
 }
 
 // Get performs an HTTP GET request.
-func (c *Client) Get(url string) (*Response, error) {
-	res, err := c.client.Get(url)
+func (c *Client) Get(ctx context.Context, url string) (*Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to perform HTTP GET request: %w", err)
 	}

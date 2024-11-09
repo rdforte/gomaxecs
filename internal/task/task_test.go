@@ -21,6 +21,7 @@
 package task_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -169,7 +170,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 			containerURI, taskURI := buildMetaEndpoints(ts)
 			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
 
-			gotCPU, err := ecsTask.GetMaxProcs()
+			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantCPU, gotCPU)
 		})
@@ -239,7 +240,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 			containerURI, taskURI := buildMetaEndpoints(ts)
 			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
 
-			gotCPU, err := ecsTask.GetMaxProcs()
+			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantCPU, gotCPU)
 		})
@@ -431,7 +432,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 
 			ecsTask := task.New(config.Config{ContainerMetadataURI: containerMetaURI, TaskMetadataURI: taskMetaURI})
 
-			_, err := ecsTask.GetMaxProcs()
+			_, err := ecsTask.GetMaxProcs(context.Background())
 			assert.ErrorContains(t, err, tt.wantError)
 		})
 	}
