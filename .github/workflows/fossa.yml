@@ -3,6 +3,11 @@ name: FossaScan
 on:
   push:
     branches: ["main"]
+<<<<<<< HEAD
+=======
+  pull_request:
+    branches: ["main"]
+>>>>>>> 22da1b3 (chore(fossa): add fossa to github workflow)
 
 jobs:
   fossa-scan:
