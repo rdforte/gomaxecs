@@ -30,6 +30,7 @@ func main() {
 ## Design
 
 ![Design](./assets/design.png)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frdforte%2Fgomaxecs.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Frdforte%2Fgomaxecs?ref=badge_shield)
 
 ## Intro to GOMAXPROCS
 
@@ -111,3 +112,7 @@ Released under the [MIT License](LICENSE).
 [mit]: https://github.com/rdforte/gomaxecs/blob/main/LICENSE
 [cov-img]: https://codecov.io/github/rdforte/gomaxecs/graph/badge.svg
 [cov]: https://codecov.io/github/rdforte/gomaxecs
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frdforte%2Fgomaxecs.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Frdforte%2Fgomaxecs?ref=badge_large)
