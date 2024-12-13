@@ -47,6 +47,13 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		testServer   func(t *testing.T, containerCPU, taskCPU int) *httptest.Server
 	}{
 		{
+			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 512 vCPU",
+			wantCPU:      1,
+			containerCPU: 1 << 9,
+			taskCPU:      1,
+			testServer:   testServerContainerLimit,
+		},
+		{
 			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
