@@ -89,6 +89,10 @@ func (t *Task) GetMaxProcs(ctx context.Context) (int, error) {
 	}
 
 	cpu := int(containerCPULimit) >> cpuUnits
+	// Set a minimum of 1 for containers with less than 1 vCPU
+	if cpu == 0 {
+		cpu = 1
+	}
 
 	taskCPULimit := int(task.Limits.CPU)
 	if taskCPULimit > 0 {
