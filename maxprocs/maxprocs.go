@@ -27,7 +27,7 @@ func Set(opts ...config.Option) (func(), error) {
 		return undoNoop, nil
 	}
 
-	prevProcs := currentMaxProcs()
+	prevProcs := prevMaxProcs()
 	undo := func() {
 		cfg.Log("maxprocs: Resetting GOMAXPROCS to %v", prevProcs)
 		runtime.GOMAXPROCS(prevProcs)
@@ -49,7 +49,7 @@ func honorCurrentMaxProcs() (string, bool) {
 	return os.LookupEnv(maxProcsKey)
 }
 
-func currentMaxProcs() int {
+func prevMaxProcs() int {
 	return runtime.GOMAXPROCS(0)
 }
 
