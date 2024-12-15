@@ -41,7 +41,7 @@ func TestConfig_New_AppliesOptions(t *testing.T) {
 	opt1 := mockOption{}
 	opt2 := mockOption{}
 
-	config.New(&opt1, &opt2)
+	config.New(opt1.Apply, opt2.Apply)
 
 	assert.True(t, opt1.isApplied)
 	assert.True(t, opt2.isApplied)

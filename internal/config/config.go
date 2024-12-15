@@ -52,7 +52,7 @@ func New(opts ...Option) Config {
 	}
 
 	for _, opt := range opts {
-		opt.Apply(&cfg)
+		opt(&cfg)
 	}
 
 	return cfg
@@ -91,18 +91,12 @@ func (c Config) Log(format string, args ...any) {
 	}
 }
 
-// Option alters the behavior of the Config.
-type Option interface {
-	Apply(*Config)
-}
-
 // WithLogger sets the logger for the config.
 func WithLogger(logger logger) Option {
-	return option(func(cfg *Config) {
+	return func(cfg *Config) {
 		cfg.log = logger
-	})
+	}
 }
 
-type option func(*Config)
-
-func (opt option) Apply(cfg *Config) { opt(cfg) }
+// Option represents a configuration option for the config.
+type Option func(*Config)
