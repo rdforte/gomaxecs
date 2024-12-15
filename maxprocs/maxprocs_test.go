@@ -51,7 +51,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 		setup   func(t *testing.T)
 	}{
 		{
-			name:    "should log when honours current max procs",
+			name:    "should log when honors current max procs",
 			wantLog: "maxprocs: Honoring GOMAXPROCS=\"4\" as set in environment",
 			setup: func(t *testing.T) {
 				t.Helper()
