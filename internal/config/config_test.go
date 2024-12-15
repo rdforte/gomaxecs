@@ -38,6 +38,8 @@ func TestConfig_New_LoadConfiguration(t *testing.T) {
 }
 
 func TestConfig_New_AppliesOptions(t *testing.T) {
+	t.Parallel()
+
 	opt1 := mockOption{}
 	opt2 := mockOption{}
 
@@ -48,6 +50,8 @@ func TestConfig_New_AppliesOptions(t *testing.T) {
 }
 
 func TestConfig_WithLogger(t *testing.T) {
+	t.Parallel()
+
 	buf := new(bytes.Buffer)
 	logger := log.New(buf, "", 0)
 
@@ -57,6 +61,17 @@ func TestConfig_WithLogger(t *testing.T) {
 
 	wantLog := "test log: arg1, arg2\n"
 	assert.Equal(t, wantLog, buf.String())
+}
+
+func TestConfig_GetECSMetadataURI_RetrievesMetadataURIFromEnv(t *testing.T) {
+	metaURIEnv := "ECS_CONTAINER_METADATA_URI_V4"
+	uri := "mock-ecs-metadata-uri/"
+	t.Setenv(metaURIEnv, uri)
+
+	got := config.GetECSMetadataURI()
+
+	want := "mock-ecs-metadata-uri"
+	assert.Equal(t, want, got)
 }
 
 type mockOption struct {

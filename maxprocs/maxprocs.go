@@ -2,6 +2,7 @@ package maxprocs
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"runtime"
 
@@ -12,10 +13,10 @@ import (
 const maxProcsKey = "GOMAXPROCS"
 
 // Set sets GOMAXPROCS based on the CPU limit of the container and the task.
-// returns a function to reset GOMAXPROCS to its previous value and an error if any.
+// returns a function to reset GOMAXPROCS to its previous value and an error if one occurred.
 func Set(opts ...config.Option) (func(), error) {
 	cfg := config.New(opts...)
-	t := task.New(cfg)
+	ecsTask := task.New(cfg)
 
 	undoNoop := func() {
 		cfg.Log("maxprocs: No GOMAXPROCS change to reset")
@@ -32,10 +33,10 @@ func Set(opts ...config.Option) (func(), error) {
 		runtime.GOMAXPROCS(prevProcs)
 	}
 
-	procs, err := t.GetMaxProcs(context.Background())
+	procs, err := ecsTask.GetMaxProcs(context.Background())
 	if err != nil {
 		cfg.Log("maxprocs: Failed to set GOMAXPROCS:", err)
-		return undo, err
+		return undo, fmt.Errorf("failed to set GOMAXPROCS: %w", err)
 	}
 
 	runtime.GOMAXPROCS(procs)
@@ -55,4 +56,9 @@ func currentMaxProcs() int {
 // WithLogger sets the logger. By default, no logger is set.
 func WithLogger(printf func(format string, args ...any)) config.Option {
 	return config.WithLogger(printf)
+}
+
+// IsECS returns true if detected ECS environment.
+func IsECS() bool {
+	return len(config.GetECSMetadataURI()) > 0
 }

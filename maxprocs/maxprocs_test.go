@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/rdforte/gomaxecs/maxprocs"
 )
@@ -30,12 +31,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestMaxProcs_Set_SuccessfullySetsGOMAXPROCS(t *testing.T) {
-	ts := testServerContainerLimit(t, 2<<10, 8)
+	ts := testServerContainerLimit(t, containerCPU, taskCPU)
 	defer ts.Close()
 
 	t.Setenv(metaURIEnv, ts.URL)
 
-	maxprocs.Set()
+	_, err := maxprocs.Set()
+	require.NoError(t, err)
 
 	procs := runtime.GOMAXPROCS(0)
 	wantProcs := 2
@@ -52,6 +54,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			name:    "should log when honours current max procs",
 			wantLog: "maxprocs: Honoring GOMAXPROCS=\"4\" as set in environment",
 			setup: func(t *testing.T) {
+				t.Helper()
 				t.Setenv("GOMAXPROCS", "4")
 			},
 		},
@@ -59,7 +62,9 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			name:    "should log GOMAXPROCS value when container cpu limit successfully set",
 			wantLog: "maxprocs: Updating GOMAXPROCS=2",
 			setup: func(t *testing.T) {
-				ts := testServerContainerLimit(t, 2<<10, 8)
+				t.Helper()
+
+				ts := testServerContainerLimit(t, containerCPU, taskCPU)
 				t.Cleanup(ts.Close)
 
 				t.Setenv(metaURIEnv, ts.URL)
@@ -69,7 +74,9 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			name:    "should log GOMAXPROCS value when task cpu limit successfully set",
 			wantLog: "maxprocs: Updating GOMAXPROCS=8",
 			setup: func(t *testing.T) {
-				ts := testServerContainerLimit(t, 0, 8)
+				t.Helper()
+
+				ts := testServerContainerLimit(t, 0, taskCPU)
 				t.Cleanup(ts.Close)
 
 				t.Setenv(metaURIEnv, ts.URL)
@@ -79,6 +86,8 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			name:    "should log error when fail to get max procs",
 			wantLog: "maxprocs: Failed to set GOMAXPROCS",
 			setup: func(t *testing.T) {
+				t.Helper()
+
 				ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 				}))
@@ -95,7 +104,8 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 
 			buf := new(bytes.Buffer)
 			logger := log.New(buf, "", 0)
-			maxprocs.Set(maxprocs.WithLogger(logger.Printf))
+
+			_, _ = maxprocs.Set(maxprocs.WithLogger(logger.Printf))
 
 			assert.Contains(t, buf.String(), tt.wantLog)
 		})
@@ -119,7 +129,7 @@ func TestMaxProcs_Set_UndoResetsGOMAXPROCS(t *testing.T) {
 	initialProcs := 5
 	runtime.GOMAXPROCS(initialProcs)
 
-	taskCPU := 8
+	taskCPU := 10
 	containerCPU := 0
 
 	ts := testServerContainerLimit(t, containerCPU, taskCPU)
@@ -139,6 +149,15 @@ func TestMaxProcs_Set_UndoResetsGOMAXPROCS(t *testing.T) {
 	assert.Equal(t, initialProcs, runtime.GOMAXPROCS(0)) // GOMAXPROCS should be reset to initialProcs
 
 	assert.Contains(t, buf.String(), fmt.Sprintf("maxprocs: Resetting GOMAXPROCS to %v", initialProcs))
+}
+
+func TestMaxProcs_IsECS_ReturnsTrueIfDetectedECSEnvironment(t *testing.T) {
+	t.Setenv(metaURIEnv, "mock-ecs-metadata-uri")
+	assert.True(t, maxprocs.IsECS())
+}
+
+func TestMaxProcs_IsECS_ReturnsFalseIfNotDetectedECSEnvironment(t *testing.T) {
+	assert.False(t, maxprocs.IsECS())
 }
 
 func testServerContainerLimit(t *testing.T, containerCPU, taskCPU int) *httptest.Server {

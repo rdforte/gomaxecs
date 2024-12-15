@@ -34,7 +34,7 @@ const (
 )
 
 func New(opts ...Option) Config {
-	uri := metadataURI()
+	uri := GetECSMetadataURI()
 
 	cfg := Config{
 		TaskMetadataURI:      uri + taskPath,
@@ -58,7 +58,8 @@ func New(opts ...Option) Config {
 	return cfg
 }
 
-func metadataURI() string {
+// GetECSMetadataURI returns the ECS metadata URI.
+func GetECSMetadataURI() string {
 	uri := os.Getenv(metaURIEnv)
 	return strings.TrimRight(uri, "/")
 }
