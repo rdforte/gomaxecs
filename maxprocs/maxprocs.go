@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	"github.com/rdforte/gomaxecs/internal/config"
-	"github.com/rdforte/gomaxecs/internal/task"
+	ecstask "github.com/rdforte/gomaxecs/internal/task"
 )
 
 const maxProcsKey = "GOMAXPROCS"
@@ -16,7 +16,7 @@ const maxProcsKey = "GOMAXPROCS"
 // returns a function to reset GOMAXPROCS to its previous value and an error if one occurred.
 func Set(opts ...config.Option) (func(), error) {
 	cfg := config.New(opts...)
-	ecsTask := task.New(cfg)
+	task := ecstask.New(cfg)
 
 	undoNoop := func() {
 		cfg.Log("maxprocs: No GOMAXPROCS change to reset")
@@ -33,7 +33,7 @@ func Set(opts ...config.Option) (func(), error) {
 		runtime.GOMAXPROCS(prevProcs)
 	}
 
-	procs, err := ecsTask.GetMaxProcs(context.Background())
+	procs, err := task.GetMaxProcs(context.Background())
 	if err != nil {
 		cfg.Log("maxprocs: Failed to set GOMAXPROCS:", err)
 		return undo, fmt.Errorf("failed to set GOMAXPROCS: %w", err)
