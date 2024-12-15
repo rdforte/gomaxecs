@@ -22,7 +22,7 @@ func Set(opts ...config.Option) (func(), error) {
 		cfg.Log("maxprocs: No GOMAXPROCS change to reset")
 	}
 
-	if curMaxProcs, exists := honorCurrentMaxProcs(); exists {
+	if curMaxProcs, ok := honorCurrentMaxProcs(); ok {
 		cfg.Log("maxprocs: Honoring GOMAXPROCS=%q as set in environment", curMaxProcs)
 		return undoNoop, nil
 	}
