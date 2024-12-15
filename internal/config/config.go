@@ -33,10 +33,10 @@ const (
 	httpTimeout = 5
 )
 
-func New() Config {
+func New(opts ...Option) Config {
 	uri := metadataURI()
 
-	return Config{
+	cfg := Config{
 		TaskMetadataURI:      uri + taskPath,
 		ContainerMetadataURI: uri,
 		Client: Client{
@@ -50,6 +50,12 @@ func New() Config {
 			ResponseHeaderTimeout: time.Second,
 		},
 	}
+
+	for _, opt := range opts {
+		opt.Apply(&cfg)
+	}
+
+	return cfg
 }
 
 func metadataURI() string {
@@ -57,12 +63,15 @@ func metadataURI() string {
 	return strings.TrimRight(uri, "/")
 }
 
-// Config represents the packagge configuration.
+// Config represents the package configuration.
 type Config struct {
 	ContainerMetadataURI string
 	TaskMetadataURI      string
 	Client               Client
+	log                  logger
 }
+
+type logger func(format string, args ...any)
 
 // Client represents the HTTP client configuration.
 type Client struct {
@@ -75,3 +84,25 @@ type Client struct {
 	TLSHandshakeTimeout   time.Duration
 	ResponseHeaderTimeout time.Duration
 }
+
+func (c Config) Log(format string, args ...any) {
+	if c.log != nil {
+		c.log(format, args...)
+	}
+}
+
+// Option alters the behavior of the Config.
+type Option interface {
+	Apply(*Config)
+}
+
+// WithLogger sets the logger for the config.
+func WithLogger(logger logger) Option {
+	return option(func(cfg *Config) {
+		cfg.log = logger
+	})
+}
+
+type option func(*Config)
+
+func (opt option) Apply(cfg *Config) { opt(cfg) }

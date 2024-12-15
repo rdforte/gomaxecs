@@ -3,13 +3,11 @@ package maxprocs_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +17,6 @@ import (
 
 const (
 	metaURIEnv   = "ECS_CONTAINER_METADATA_URI_V4"
-	containerID  = "container-id"
 	taskCPU      = 8
 	containerCPU = 2 << 10
 )
@@ -36,9 +33,9 @@ func TestMaxProcs_Set_SuccessfullySetsGOMAXPROCS(t *testing.T) {
 	ts := testServerContainerLimit(t, 2<<10, 8)
 	defer ts.Close()
 
-	t.Setenv(metaURIEnv, strings.Join([]string{ts.URL, "/", containerID}, ""))
+	t.Setenv(metaURIEnv, ts.URL)
 
-	maxprocs.Set(log.New(io.Discard, "", 0))
+	maxprocs.Set()
 
 	procs := runtime.GOMAXPROCS(0)
 	wantProcs := 2
@@ -49,53 +46,110 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 	tableTest := []struct {
 		name    string
 		wantLog string
-		metaURI func() string
+		setup   func(t *testing.T)
 	}{
 		{
-			name:    "should log GOMAXPROCS value when successfully set",
-			wantLog: "GOMAXPROCS set to: 2",
-			metaURI: func() string {
+			name:    "should log when honours current max procs",
+			wantLog: "maxprocs: Honoring GOMAXPROCS=\"4\" as set in environment",
+			setup: func(t *testing.T) {
+				t.Setenv("GOMAXPROCS", "4")
+			},
+		},
+		{
+			name:    "should log GOMAXPROCS value when container cpu limit successfully set",
+			wantLog: "maxprocs: Updating GOMAXPROCS=2",
+			setup: func(t *testing.T) {
 				ts := testServerContainerLimit(t, 2<<10, 8)
 				t.Cleanup(ts.Close)
 
-				return strings.Join([]string{ts.URL, "/", containerID}, "")
+				t.Setenv(metaURIEnv, ts.URL)
+			},
+		},
+		{
+			name:    "should log GOMAXPROCS value when task cpu limit successfully set",
+			wantLog: "maxprocs: Updating GOMAXPROCS=8",
+			setup: func(t *testing.T) {
+				ts := testServerContainerLimit(t, 0, 8)
+				t.Cleanup(ts.Close)
+
+				t.Setenv(metaURIEnv, ts.URL)
 			},
 		},
 		{
 			name:    "should log error when fail to get max procs",
-			wantLog: "failed to set GOMAXPROC",
-			metaURI: func() string {
+			wantLog: "maxprocs: Failed to set GOMAXPROCS",
+			setup: func(t *testing.T) {
 				ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 				}))
 				t.Cleanup(ts.Close)
 
-				return strings.Join([]string{ts.URL, "/", containerID}, "")
+				t.Setenv(metaURIEnv, ts.URL)
 			},
 		},
 	}
 
 	for _, tt := range tableTest {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(metaURIEnv, tt.metaURI())
+			tt.setup(t)
 
 			buf := new(bytes.Buffer)
-			maxprocs.Set(log.New(buf, "", 0))
+			logger := log.New(buf, "", 0)
+			maxprocs.Set(maxprocs.WithLogger(logger.Printf))
 
 			assert.Contains(t, buf.String(), tt.wantLog)
 		})
 	}
 }
 
+func TestMaxProcs_Set_UndoLogsNoChangesWhenHonoursCurrentMaxProcs(t *testing.T) {
+	t.Setenv("GOMAXPROCS", "4")
+
+	buf := new(bytes.Buffer)
+	logger := log.New(buf, "", 0)
+
+	undo, _ := maxprocs.Set(maxprocs.WithLogger(logger.Printf))
+
+	undo()
+
+	assert.Contains(t, buf.String(), "maxprocs: No GOMAXPROCS change to reset")
+}
+
+func TestMaxProcs_Set_UndoResetsGOMAXPROCS(t *testing.T) {
+	initialProcs := 5
+	runtime.GOMAXPROCS(initialProcs)
+
+	taskCPU := 8
+	containerCPU := 0
+
+	ts := testServerContainerLimit(t, containerCPU, taskCPU)
+	defer ts.Close()
+
+	t.Setenv(metaURIEnv, ts.URL)
+
+	buf := new(bytes.Buffer)
+	logger := log.New(buf, "", 0)
+
+	undo, _ := maxprocs.Set(maxprocs.WithLogger(logger.Printf))
+
+	assert.Equal(t, taskCPU, runtime.GOMAXPROCS(0)) // GOMAXPROCS should be set to taskCPU
+
+	undo() // reset GOMAXPROCS
+
+	assert.Equal(t, initialProcs, runtime.GOMAXPROCS(0)) // GOMAXPROCS should be reset to initialProcs
+
+	assert.Contains(t, buf.String(), fmt.Sprintf("maxprocs: Resetting GOMAXPROCS to %v", initialProcs))
+}
+
 func testServerContainerLimit(t *testing.T, containerCPU, taskCPU int) *httptest.Server {
 	t.Helper()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/container-id", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
 		assert.NoError(t, err)
 	})
-	mux.HandleFunc("/container-id/task", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte(fmt.Sprintf(
 			`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`,
 			containerCPU,

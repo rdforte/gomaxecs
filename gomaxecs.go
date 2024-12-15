@@ -29,5 +29,5 @@ import (
 )
 
 func init() {
-	maxprocs.Set(log.Default())
+	maxprocs.Set(maxprocs.WithLogger(log.Printf))
 }
