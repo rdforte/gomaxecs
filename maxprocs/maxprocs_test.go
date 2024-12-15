@@ -112,7 +112,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 	}
 }
 
-func TestMaxProcs_Set_UndoLogsNoChangesWhenHonoursCurrentMaxProcs(t *testing.T) {
+func TestMaxProcs_Set_UndoLogsNoChangesWhenHonorsCurrentMaxProcs(t *testing.T) {
 	t.Setenv("GOMAXPROCS", "4")
 
 	buf := new(bytes.Buffer)
