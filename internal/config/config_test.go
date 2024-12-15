@@ -49,7 +49,7 @@ func TestConfig_New_AppliesOptions(t *testing.T) {
 	assert.True(t, opt2.isApplied)
 }
 
-func TestConfig_WithLogger(t *testing.T) {
+func TestConfig_WithLogger_LogsMessage(t *testing.T) {
 	t.Parallel()
 
 	buf := new(bytes.Buffer)
