@@ -158,6 +158,8 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 			taskCPU:      16,
 			testServer:   testServerContainerLimit,
 		},
+		// For tasks that are hosted on Amazon EC2 instances, the CPU limit is optional.
+		// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
 		{
 			name:         "should get cpu of 16 when task CPU limit is 0 and container CPU limit is 16384 vCPU",
 			wantCPU:      16,

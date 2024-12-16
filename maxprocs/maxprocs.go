@@ -14,6 +14,7 @@ const maxProcsKey = "GOMAXPROCS"
 
 // Set sets GOMAXPROCS based on the CPU limit of the container and the task.
 // returns a function to reset GOMAXPROCS to its previous value and an error if one occurred.
+// If the GOMAXPROCS environment variable is set, it will honor that value.
 func Set(opts ...config.Option) (func(), error) {
 	cfg := config.New(opts...)
 	task := ecstask.New(cfg)
@@ -22,15 +23,15 @@ func Set(opts ...config.Option) (func(), error) {
 		cfg.Log("maxprocs: No GOMAXPROCS change to reset")
 	}
 
-	if curMaxProcs, ok := honorCurrentMaxProcs(); ok {
-		cfg.Log("maxprocs: Honoring GOMAXPROCS=%q as set in environment", curMaxProcs)
+	if procs, ok := shouldHonorGOMAXPROCSEnv(); ok {
+		cfg.Log("maxprocs: Honoring GOMAXPROCS=%q as set in environment", procs)
 		return undoNoop, nil
 	}
 
 	prevProcs := prevMaxProcs()
 	undo := func() {
 		cfg.Log("maxprocs: Resetting GOMAXPROCS to %v", prevProcs)
-		runtime.GOMAXPROCS(prevProcs)
+		setMaxProcs(prevProcs)
 	}
 
 	procs, err := task.GetMaxProcs(context.Background())
@@ -39,18 +40,24 @@ func Set(opts ...config.Option) (func(), error) {
 		return undo, fmt.Errorf("failed to set GOMAXPROCS: %w", err)
 	}
 
-	runtime.GOMAXPROCS(procs)
-	cfg.Log("maxprocs: Updating GOMAXPROCS=%v", procs)
+	setMaxProcs(procs)
+	cfg.Log("maxprocs: Updated GOMAXPROCS=%v", procs)
 
 	return undo, nil
 }
 
-func honorCurrentMaxProcs() (string, bool) {
+// shouldHonorGOMAXPROCSEnv returns the GOMAXPROCS environment variable if present
+// and a boolean indicating if it should be honored.
+func shouldHonorGOMAXPROCSEnv() (string, bool) {
 	return os.LookupEnv(maxProcsKey)
 }
 
 func prevMaxProcs() int {
 	return runtime.GOMAXPROCS(0)
+}
+
+func setMaxProcs(procs int) {
+	runtime.GOMAXPROCS(procs)
 }
 
 // WithLogger sets the logger. By default, no logger is set.

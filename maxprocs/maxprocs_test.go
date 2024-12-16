@@ -60,7 +60,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 		},
 		{
 			name:    "should log GOMAXPROCS value when container cpu limit successfully set",
-			wantLog: "maxprocs: Updating GOMAXPROCS=2",
+			wantLog: "maxprocs: Updated GOMAXPROCS=2",
 			setup: func(t *testing.T) {
 				t.Helper()
 
@@ -72,7 +72,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 		},
 		{
 			name:    "should log GOMAXPROCS value when task cpu limit successfully set",
-			wantLog: "maxprocs: Updating GOMAXPROCS=8",
+			wantLog: "maxprocs: Updated GOMAXPROCS=8",
 			setup: func(t *testing.T) {
 				t.Helper()
 
@@ -112,7 +112,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 	}
 }
 
-func TestMaxProcs_Set_UndoLogsNoChangesWhenHonorsCurrentMaxProcs(t *testing.T) {
+func TestMaxProcs_Set_UndoLogsNoChangesWhenHonorsGOMAXPROCSEnv(t *testing.T) {
 	t.Setenv("GOMAXPROCS", "4")
 
 	buf := new(bytes.Buffer)

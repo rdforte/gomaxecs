@@ -29,20 +29,20 @@ import (
 	"github.com/rdforte/gomaxecs/internal/client"
 )
 
-// TaskMeta represents the ECS Task Metadata.
+// taskMeta represents the ECS Task Metadata.
 type taskMeta struct {
 	Containers []container `json:"Containers"`
 	Limits     limit       `json:"Limits"` // this is optional in the response
 }
 
-// Container represents the ECS Container Metadata.
+// container represents the ECS Container Metadata.
 type container struct {
 	//nolint:tagliatelle // ECS Agent inconsistency. All fields adhere to goPascal but this one.
 	DockerID string `json:"DockerId"`
 	Limits   limit  `json:"Limits"`
 }
 
-// Limit contains the CPU limit.
+// limit contains the CPU limit.
 type limit struct {
 	CPU float64 `json:"CPU"`
 }
