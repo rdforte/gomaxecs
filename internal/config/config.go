@@ -33,10 +33,10 @@ const (
 	httpTimeout = 5
 )
 
-func New() Config {
-	uri := metadataURI()
+func New(opts ...Option) Config {
+	uri := GetECSMetadataURI()
 
-	return Config{
+	cfg := Config{
 		TaskMetadataURI:      uri + taskPath,
 		ContainerMetadataURI: uri,
 		Client: Client{
@@ -50,19 +50,29 @@ func New() Config {
 			ResponseHeaderTimeout: time.Second,
 		},
 	}
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	return cfg
 }
 
-func metadataURI() string {
+// GetECSMetadataURI returns the ECS metadata URI.
+func GetECSMetadataURI() string {
 	uri := os.Getenv(metaURIEnv)
 	return strings.TrimRight(uri, "/")
 }
 
-// Config represents the packagge configuration.
+// Config represents the package configuration.
 type Config struct {
 	ContainerMetadataURI string
 	TaskMetadataURI      string
 	Client               Client
+	log                  logger
 }
+
+type logger func(format string, args ...any)
 
 // Client represents the HTTP client configuration.
 type Client struct {
@@ -75,3 +85,19 @@ type Client struct {
 	TLSHandshakeTimeout   time.Duration
 	ResponseHeaderTimeout time.Duration
 }
+
+func (c Config) Log(format string, args ...any) {
+	if c.log != nil {
+		c.log(format, args...)
+	}
+}
+
+// WithLogger sets the logger for the config.
+func WithLogger(logger logger) Option {
+	return func(cfg *Config) {
+		cfg.log = logger
+	}
+}
+
+// Option represents a configuration option for the config.
+type Option func(*Config)

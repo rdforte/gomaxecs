@@ -33,6 +33,7 @@ import (
 
 const (
 	cpuUnits = 10
+	minCPU   = 1
 )
 
 var errNoCPULimit = errors.New("no CPU limit found for task or container")
@@ -84,15 +85,10 @@ func (t *Task) GetMaxProcs(ctx context.Context) (int, error) {
 	}
 
 	if containerCPULimit == 0 {
-		minThreads := 1
-		return max(int(task.Limits.CPU), minThreads), nil
+		return max(int(task.Limits.CPU), minCPU), nil
 	}
 
-	cpu := int(containerCPULimit) >> cpuUnits
-	// Set a minimum of 1 for containers with less than 1 vCPU
-	if cpu == 0 {
-		cpu = 1
-	}
+	cpu := max(int(containerCPULimit)>>cpuUnits, minCPU)
 
 	taskCPULimit := int(task.Limits.CPU)
 	if taskCPULimit > 0 {

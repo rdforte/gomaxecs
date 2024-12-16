@@ -122,6 +122,9 @@ issues:
     - path: gomaxecs.go
       linters:
         - gochecknoinits # enable init function for setting GOMAXPROCS.
+    - path: maxprocs/maxprocs_test.go
+      linters:
+        - paralleltest # disable paralleltest for testing GOMAXPROCS env variable.
 
 linters-settings:
   depguard:
