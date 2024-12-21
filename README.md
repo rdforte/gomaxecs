@@ -3,7 +3,7 @@
 </p>
 <div align="center">
 
-[![Build Status][ci-img]][ci] [![Report Card][report-img]][report] [![Test Coverage][cov-img]][cov] [![FOSSA Status][fossa-img]][fossa] [![GoDoc][doc-img]][doc] [![License: MIT][mit-img]][mit]
+[![Build Status][ci-img]][ci] [![Report Card][report-img]][report] [![Test Coverage][cov-img]][cov] ![Release] [![FOSSA Status][fossa-img]][fossa] [![GoDoc][doc-img]][doc] [![License: MIT][mit-img]][mit]
 
 # gomaxecs
 
@@ -115,3 +115,4 @@ Released under the [MIT License](LICENSE).
 [fossa]: https://app.fossa.com/projects/custom%2B49223%2Fgithub.com%2Frdforte%2Fgomaxecs?ref=badge_small
 [report-img]: https://goreportcard.com/badge/github.com/rdforte/gomaxecs
 [report]: https://goreportcard.com/report/github.com/rdforte/gomaxecs
+[release]: https://img.shields.io/github/v/release/rdforte/gomaxecs
