@@ -3,7 +3,7 @@
 </p>
 <div align="center">
 
-[![Build Status][ci-img]][ci] [![Test Coverage][cov-img]][cov] [![GoDoc][doc-img]][doc] [![License: MIT][mit-img]][mit]
+[![Build Status][ci-img]][ci] [![Report Card][report-img]][report] [![Test Coverage][cov-img]][cov] [![FOSSA Status][fossa-img]][fossa] [![GoDoc][doc-img]][doc] [![License: MIT][mit-img]][mit]
 
 # gomaxecs
 
@@ -111,3 +111,7 @@ Released under the [MIT License](LICENSE).
 [mit]: https://github.com/rdforte/gomaxecs/blob/main/LICENSE
 [cov-img]: https://codecov.io/github/rdforte/gomaxecs/graph/badge.svg
 [cov]: https://codecov.io/github/rdforte/gomaxecs
+[fossa-img]: https://app.fossa.com/api/projects/custom%2B49223%2Fgithub.com%2Frdforte%2Fgomaxecs.svg?type=small
+[fossa]: https://app.fossa.com/projects/custom%2B49223%2Fgithub.com%2Frdforte%2Fgomaxecs?ref=badge_small
+[report-img]: https://goreportcard.com/badge/github.com/rdforte/gomaxecs
+[report]: https://goreportcard.com/report/github.com/rdforte/gomaxecs
