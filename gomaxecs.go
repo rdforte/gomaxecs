@@ -29,5 +29,11 @@ import (
 )
 
 func init() {
-	_, _ = maxprocs.Set(maxprocs.WithLogger(log.Printf))
+	runSetMaxProcs()
+}
+
+func runSetMaxProcs() {
+	if maxprocs.IsECS() {
+		_, _ = maxprocs.Set(maxprocs.WithLogger(log.Printf))
+	}
 }
