@@ -26,7 +26,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rdforte/gomaxecs/internal/test/agent"
+	"github.com/rdforte/gomaxecs/internal/task/tasktest"
 )
 
 func TestGomaxecs_runSetMaxProcs_ECSEnvNotDetected(t *testing.T) {
@@ -42,7 +42,7 @@ func TestGomaxecs_runSetMaxProcs_ECSEnvDetected(t *testing.T) {
 	wantCPUs := 2
 	containerCPU, taskCPU := wantCPUs<<10, wantCPUs
 
-	a := agent.NewV4Builder(t).
+	a := tasktest.NewECSAgent(t).
 		WithContainerMetaEndpoint(containerCPU).
 		WithTaskMetaEndpoint(containerCPU, taskCPU).
 		Start().

@@ -32,7 +32,7 @@ import (
 
 	"github.com/rdforte/gomaxecs/internal/config"
 	"github.com/rdforte/gomaxecs/internal/task"
-	"github.com/rdforte/gomaxecs/internal/test/agent"
+	"github.com/rdforte/gomaxecs/internal/task/tasktest"
 )
 
 const taskMetaPath = "/task"
@@ -156,7 +156,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			a := agent.NewV4Builder(t).
+			a := tasktest.NewECSAgent(t).
 				WithContainerMetaEndpoint(tt.containerCPU).
 				WithTaskMetaEndpoint(tt.containerCPU, tt.taskCPU).
 				Start()
@@ -223,7 +223,7 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			a := agent.NewV4Builder(t).
+			a := tasktest.NewECSAgent(t).
 				WithContainerMetaEndpoint(0).
 				WithTaskMetaEndpoint(0, tt.taskCPU).
 				Start()

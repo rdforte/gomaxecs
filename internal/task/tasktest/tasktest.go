@@ -1,4 +1,4 @@
-package agent
+package tasktest
 
 import (
 	"fmt"
@@ -14,25 +14,25 @@ const (
 	taskMetaPath = "/task"
 )
 
-// ECSAgentV4 is a test server that simulates the ECS Agent metadata API.
-type ECSAgentV4 struct {
+// ECSAgent is a test server that simulates the ECS Agent metadata API.
+type ECSAgent struct {
 	t            *testing.T
 	mux          *http.ServeMux
 	server       *httptest.Server
 	containerCPU int
 }
 
-// NewBuilder builds a new test server that simulates the ECS Agent metadata API.
+// NewECSAgent builds a new test server that simulates the ECS Agent metadata API.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html
-func NewV4Builder(t *testing.T) *ECSAgentV4 {
+func NewECSAgent(t *testing.T) *ECSAgent {
 	t.Helper()
 
 	mux := http.NewServeMux()
-	return &ECSAgentV4{t, mux, nil, 0}
+	return &ECSAgent{t, mux, nil, 0}
 }
 
 // WithContainerMetaEndpoint sets up the container CPU endpoint on the test server.
-func (e *ECSAgentV4) WithContainerMetaEndpoint(containerCPU int) *ECSAgentV4 {
+func (e *ECSAgent) WithContainerMetaEndpoint(containerCPU int) *ECSAgent {
 	e.t.Helper()
 	e.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
@@ -42,7 +42,7 @@ func (e *ECSAgentV4) WithContainerMetaEndpoint(containerCPU int) *ECSAgentV4 {
 }
 
 // WithTaskMetaEndpoint sets up the task CPU endpoint on the test server.
-func (e *ECSAgentV4) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgentV4 {
+func (e *ECSAgent) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgent {
 	e.t.Helper()
 	e.mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte(fmt.Sprintf(
@@ -56,7 +56,7 @@ func (e *ECSAgentV4) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgentV4
 }
 
 // Start starts the test server.
-func (e *ECSAgentV4) Start() *ECSAgentV4 {
+func (e *ECSAgent) Start() *ECSAgent {
 	e.t.Helper()
 	e.server = httptest.NewServer(e.mux)
 	return e
@@ -64,7 +64,7 @@ func (e *ECSAgentV4) Start() *ECSAgentV4 {
 
 // SetMetaURIEnv is a helper function to set the server url for ECS_CONTAINER_METADATA_URI_V4 environment variable.
 // This is useful for testing the ECS metadata API.
-func (e *ECSAgentV4) SetMetaURIEnv() *ECSAgentV4 {
+func (e *ECSAgent) SetMetaURIEnv() *ECSAgent {
 	e.t.Helper()
 	assert.NotNil(e.t, e.server)
 	e.t.Setenv(metaURIEnv, e.server.URL)
@@ -72,16 +72,16 @@ func (e *ECSAgentV4) SetMetaURIEnv() *ECSAgentV4 {
 }
 
 // Close closes the test server.
-func (e *ECSAgentV4) Close() {
+func (e *ECSAgent) Close() {
 	e.server.Close()
 }
 
 // GetContainerMetaEndpoint returns the container metadata endpoint.
-func (e *ECSAgentV4) GetContainerMetaEndpoint() string {
+func (e *ECSAgent) GetContainerMetaEndpoint() string {
 	return e.server.URL
 }
 
 // GetTaskMetaEndpoint returns the task metadata endpoint.
-func (e *ECSAgentV4) GetTaskMetaEndpoint() string {
+func (e *ECSAgent) GetTaskMetaEndpoint() string {
 	return e.server.URL + taskMetaPath
 }

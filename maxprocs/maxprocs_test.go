@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rdforte/gomaxecs/internal/test/agent"
+	"github.com/rdforte/gomaxecs/internal/task/tasktest"
 	"github.com/rdforte/gomaxecs/maxprocs"
 )
 
@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestMaxProcs_Set_SuccessfullySetsGOMAXPROCS(t *testing.T) {
-	a := agent.NewV4Builder(t).
+	a := tasktest.NewECSAgent(t).
 		WithContainerMetaEndpoint(containerCPU).
 		WithTaskMetaEndpoint(containerCPU, taskCPU).
 		Start().
@@ -67,7 +67,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			setup: func(t *testing.T) {
 				t.Helper()
 
-				a := agent.NewV4Builder(t).
+				a := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					Start().
@@ -83,7 +83,7 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 				t.Helper()
 
 				containerCPU := 0
-				a := agent.NewV4Builder(t).
+				a := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					Start().
@@ -142,7 +142,7 @@ func TestMaxProcs_Set_UndoResetsGOMAXPROCS(t *testing.T) {
 	taskCPU := 10
 	containerCPU := 0
 
-	a := agent.NewV4Builder(t).
+	a := tasktest.NewECSAgent(t).
 		WithContainerMetaEndpoint(containerCPU).
 		WithTaskMetaEndpoint(containerCPU, taskCPU).
 		Start().
