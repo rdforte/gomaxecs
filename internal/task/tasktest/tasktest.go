@@ -72,6 +72,25 @@ func (e *ECSAgent) WithTaskMetaEndpointInternalServerError() *ECSAgent {
 	return e
 }
 
+// WithContainerMetaEndpointInvalidJSON sets up the container meta endpoint to return invalid JSON.
+func (e *ECSAgent) WithContainerMetaEndpointInvalidJSON() *ECSAgent {
+	e.t.Helper()
+	e.mux.HandleFunc("/", e.invalidJSONHandler)
+	return e
+}
+
+// WithTaskMetaEndpointInvalidJSON sets up the task meta endpoint to return invalid JSON.
+func (e *ECSAgent) WithTaskMetaEndpointInvalidJSON() *ECSAgent {
+	e.t.Helper()
+	e.mux.HandleFunc(taskMetaPath, e.invalidJSONHandler)
+	return e
+}
+
+func (e *ECSAgent) invalidJSONHandler(w http.ResponseWriter, _ *http.Request) {
+	_, err := w.Write([]byte("invlaid-json"))
+	assert.NoError(e.t, err)
+}
+
 // Start starts the test server.
 func (e *ECSAgent) Start() *ECSAgent {
 	e.t.Helper()

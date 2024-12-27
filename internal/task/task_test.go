@@ -22,9 +22,6 @@ package task_test
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -269,30 +266,15 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
 			},
 		},
-		// {
-		// name:      "should raise error when task CPU limit is 0 and container CPU limit does not exist",
-		// wantError: "no CPU limit found for task or container",
-		// taskCPU:   0,
-		// testServer: func(t *testing.T, _, taskCPU int) (string, string) {
-		// t.Helper()
-
-		// ts := testServerTaskLimit(t, taskCPU)
-
-		// t.Cleanup(func() {
-		// ts.Close()
-		// })
-
-		// return buildMetaEndpoints(ts)
-		// },
-		// },
 		{
 			name:      "should raise error when ECS container endpoint is not 200 OK",
 			wantError: "failed to get ECS container meta: request failed, status code: 500",
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
+				containerCPU, taskCPU := 0, 1
 				a := tasktest.NewECSAgent(t).
-					WithTaskMetaEndpoint(0, 1).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					WithContainerMetaEndpointInternalServerError().
 					Start()
 
@@ -307,8 +289,9 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
+				containerCPU := 1
 				a := tasktest.NewECSAgent(t).
-					WithContainerMetaEndpoint(1).
+					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpointInternalServerError().
 					Start()
 
@@ -323,26 +306,15 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte("invlaid-json"))
-					assert.NoError(t, err)
-				})
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(
-						`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`,
-						1,
-						1024,
-					)))
-					assert.NoError(t, err)
-				})
-				ts := httptest.NewServer(mux)
+				containerCPU, taskCPU := 1<<10, 1
+				a := tasktest.NewECSAgent(t).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					WithContainerMetaEndpointInvalidJSON().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(a.Close)
 
-				return buildMetaEndpoints(ts)
+				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
 			},
 		},
 		{
@@ -351,22 +323,15 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte("invlaid-json"))
-					assert.NoError(t, err)
-				})
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
-					assert.NoError(t, err)
-				})
-				ts := httptest.NewServer(mux)
+				containerCPU := 1 << 10
+				a := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpointInvalidJSON().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(a.Close)
 
-				return buildMetaEndpoints(ts)
+				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
 			},
 		},
 		{
@@ -375,15 +340,16 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
-				cpu := 1
-				ts := testServerTaskLimit(t, cpu)
+				containerCPU, taskCPU := 1<<10, 1
+				a := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(a.Close)
 
-				_, taskURI := buildMetaEndpoints(ts)
 				containerURI := "invalid-uri"
+				taskURI := a.GetTaskMetaEndpoint()
 
 				return containerURI, taskURI
 			},
@@ -394,14 +360,15 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
-				cpu := 1
-				ts := testServerTaskLimit(t, cpu)
+				containerCPU, taskCPU := 1<<10, 1
+				a := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(a.Close)
 
-				containerURI, _ := buildMetaEndpoints(ts)
+				containerURI := a.GetContainerMetaEndpoint()
 				taskURI := "invalid-uri"
 
 				return containerURI, taskURI
@@ -421,37 +388,4 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			assert.ErrorContains(t, err, tt.wantError)
 		})
 	}
-}
-
-func testServerContainerLimit(t *testing.T, containerCPU, taskCPU int) *httptest.Server {
-	t.Helper()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
-		assert.NoError(t, err)
-	})
-	mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(
-			`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`,
-			taskCPU,
-			containerCPU,
-		)))
-		assert.NoError(t, err)
-	})
-
-	return httptest.NewServer(mux)
-}
-
-func testServerTaskLimit(t *testing.T, taskCPU int) *httptest.Server {
-	t.Helper()
-
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
-		assert.NoError(t, err)
-	}))
-}
-
-func buildMetaEndpoints(ts *httptest.Server) (containerMetaURI, taskMetaURI string) {
-	return ts.URL, ts.URL + taskMetaPath
 }
