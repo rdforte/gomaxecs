@@ -18,7 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package gomaxecs
+// NOTE: This file is intentionally testing a private function.
+// This is to ensure that the function runSetMaxProcs is tested
+// and remains private to the package.
+package gomaxecs //nolint:testpackage // Test private function.
 
 import (
 	"runtime"
@@ -30,8 +33,12 @@ import (
 )
 
 func TestGomaxecs_runSetMaxProcs_ECSEnvNotDetected(t *testing.T) {
+	t.Parallel()
+
 	curMaxProcs := runtime.GOMAXPROCS(0)
+
 	runSetMaxProcs()
+
 	assert.Equal(t, curMaxProcs, runtime.GOMAXPROCS(0))
 }
 
@@ -42,12 +49,12 @@ func TestGomaxecs_runSetMaxProcs_ECSEnvDetected(t *testing.T) {
 	wantCPUs := 2
 	containerCPU, taskCPU := wantCPUs<<10, wantCPUs
 
-	a := tasktest.NewECSAgent(t).
+	agent := tasktest.NewECSAgent(t).
 		WithContainerMetaEndpoint(containerCPU).
 		WithTaskMetaEndpoint(containerCPU, taskCPU).
 		Start().
 		SetMetaURIEnv()
-	defer a.Close()
+	defer agent.Close()
 
 	runSetMaxProcs()
 

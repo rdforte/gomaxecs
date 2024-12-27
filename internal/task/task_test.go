@@ -32,8 +32,6 @@ import (
 	"github.com/rdforte/gomaxecs/internal/task/tasktest"
 )
 
-const taskMetaPath = "/task"
-
 func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 	t.Parallel()
 
@@ -153,15 +151,15 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			a := tasktest.NewECSAgent(t).
+			agent := tasktest.NewECSAgent(t).
 				WithContainerMetaEndpoint(tt.containerCPU).
 				WithTaskMetaEndpoint(tt.containerCPU, tt.taskCPU).
 				Start()
-			defer a.Close()
+			defer agent.Close()
 
 			ecsTask := task.New(config.Config{
-				ContainerMetadataURI: a.GetContainerMetaEndpoint(),
-				TaskMetadataURI:      a.GetTaskMetaEndpoint(),
+				ContainerMetadataURI: agent.GetContainerMetaEndpoint(),
+				TaskMetadataURI:      agent.GetTaskMetaEndpoint(),
 			})
 
 			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
@@ -220,15 +218,17 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			a := tasktest.NewECSAgent(t).
-				WithContainerMetaEndpoint(0).
-				WithTaskMetaEndpoint(0, tt.taskCPU).
+			containerCPU := 0
+
+			agent := tasktest.NewECSAgent(t).
+				WithContainerMetaEndpoint(containerCPU).
+				WithTaskMetaEndpoint(containerCPU, tt.taskCPU).
 				Start()
-			defer a.Close()
+			defer agent.Close()
 
 			ecsTask := task.New(config.Config{
-				ContainerMetadataURI: a.GetContainerMetaEndpoint(),
-				TaskMetadataURI:      a.GetTaskMetaEndpoint(),
+				ContainerMetadataURI: agent.GetContainerMetaEndpoint(),
+				TaskMetadataURI:      agent.GetTaskMetaEndpoint(),
 			})
 
 			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
@@ -242,114 +242,112 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 	t.Parallel()
 
 	tableTest := []struct {
-		name         string
-		wantError    string
-		containerCPU int
-		taskCPU      int
-		testServer   func(t *testing.T, containerCPU, taskCPU int) (containerMetaURI, taskMetaURI string)
+		name       string
+		wantError  string
+		testServer func(t *testing.T) (containerMetaURI, taskMetaURI string)
 	}{
 		{
-			name:         "should raise error when task CPU limit is 0 and container CPU limit is 0",
-			wantError:    "no CPU limit found for task or container",
-			containerCPU: 0,
-			taskCPU:      0,
-			testServer: func(t *testing.T, containerCPU, taskCPU int) (string, string) {
+			name:      "should raise error when task CPU limit is 0 and container CPU limit is 0",
+			wantError: "no CPU limit found for task or container",
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				a := tasktest.NewECSAgent(t).
+				containerCPU, taskCPU := 0, 0
+
+				agent := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					Start()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 
-				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when ECS container endpoint is not 200 OK",
 			wantError: "failed to get ECS container meta: request failed, status code: 500",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
 				containerCPU, taskCPU := 0, 1
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					WithContainerMetaEndpointInternalServerError().
 					Start()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 
-				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when ECS task endpoint is not 200 OK",
 			wantError: "failed to get ECS task meta: request failed, status code: 500",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
 				containerCPU := 1
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpointInternalServerError().
 					Start()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 
-				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when fail to unmarshal ECS container meta",
 			wantError: "failed to get ECS container meta: unmarshal failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
 				containerCPU, taskCPU := 1<<10, 1
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					WithContainerMetaEndpointInvalidJSON().
 					Start()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 
-				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when fail to unmarshal ECS task meta",
 			wantError: "failed to get ECS task meta: unmarshal failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
 				containerCPU := 1 << 10
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpointInvalidJSON().
 					Start()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 
-				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when fail to get ECS container meta",
 			wantError: "failed to get ECS container meta: request failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
 				containerCPU, taskCPU := 1<<10, 1
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					Start()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 
 				containerURI := "invalid-uri"
-				taskURI := a.GetTaskMetaEndpoint()
+				taskURI := agent.GetTaskMetaEndpoint()
 
 				return containerURI, taskURI
 			},
@@ -357,18 +355,18 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 		{
 			name:      "should raise error when fail to get ECS task meta",
 			wantError: "failed to get ECS task meta: request failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
 				containerCPU, taskCPU := 1<<10, 1
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					Start()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 
-				containerURI := a.GetContainerMetaEndpoint()
+				containerURI := agent.GetContainerMetaEndpoint()
 				taskURI := "invalid-uri"
 
 				return containerURI, taskURI
@@ -380,8 +378,7 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			containerMetaURI, taskMetaURI := tt.testServer(t, tt.containerCPU, tt.taskCPU)
-
+			containerMetaURI, taskMetaURI := tt.testServer(t)
 			ecsTask := task.New(config.Config{ContainerMetadataURI: containerMetaURI, TaskMetadataURI: taskMetaURI})
 
 			_, err := ecsTask.GetMaxProcs(context.Background())

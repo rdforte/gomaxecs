@@ -32,12 +32,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestMaxProcs_Set_SuccessfullySetsGOMAXPROCS(t *testing.T) {
-	a := tasktest.NewECSAgent(t).
+	agent := tasktest.NewECSAgent(t).
 		WithContainerMetaEndpoint(containerCPU).
 		WithTaskMetaEndpoint(containerCPU, taskCPU).
 		Start().
 		SetMetaURIEnv()
-	defer a.Close()
+	defer agent.Close()
 
 	_, err := maxprocs.Set()
 	require.NoError(t, err)
@@ -67,13 +67,13 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			setup: func(t *testing.T) {
 				t.Helper()
 
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					Start().
 					SetMetaURIEnv()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 			},
 		},
 		{
@@ -83,13 +83,13 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 				t.Helper()
 
 				containerCPU := 0
-				a := tasktest.NewECSAgent(t).
+				agent := tasktest.NewECSAgent(t).
 					WithContainerMetaEndpoint(containerCPU).
 					WithTaskMetaEndpoint(containerCPU, taskCPU).
 					Start().
 					SetMetaURIEnv()
 
-				t.Cleanup(a.Close)
+				t.Cleanup(agent.Close)
 			},
 		},
 		{
@@ -142,12 +142,12 @@ func TestMaxProcs_Set_UndoResetsGOMAXPROCS(t *testing.T) {
 	taskCPU := 10
 	containerCPU := 0
 
-	a := tasktest.NewECSAgent(t).
+	agent := tasktest.NewECSAgent(t).
 		WithContainerMetaEndpoint(containerCPU).
 		WithTaskMetaEndpoint(containerCPU, taskCPU).
 		Start().
 		SetMetaURIEnv()
-	defer a.Close()
+	defer agent.Close()
 
 	buf := new(bytes.Buffer)
 	logger := log.New(buf, "", 0)
