@@ -32,6 +32,7 @@ import (
 
 	"github.com/rdforte/gomaxecs/internal/config"
 	"github.com/rdforte/gomaxecs/internal/task"
+	"github.com/rdforte/gomaxecs/internal/test/agent"
 )
 
 const taskMetaPath = "/task"
@@ -44,119 +45,102 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		wantCPU      int
 		containerCPU int
 		taskCPU      int
-		testServer   func(t *testing.T, containerCPU, taskCPU int) *httptest.Server
 	}{
 		{
 			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 512 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 9,
 			taskCPU:      1,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      1,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 2 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      2,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 4 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      4,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 8 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 16 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 2 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      2,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 4 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      2,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 8 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 16 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 4 and container CPU limit is 4096 vCPU",
 			wantCPU:      4,
 			containerCPU: 4 << 10,
 			taskCPU:      4,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 8 and container CPU limit is 4096 vCPU",
 			wantCPU:      4,
 			containerCPU: 4 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 16 and container CPU limit is 4096 vCPU",
 			wantCPU:      4,
 			containerCPU: 4 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 8 when task CPU limit is 8 and container CPU limit is 8192 vCPU",
 			wantCPU:      8,
 			containerCPU: 8 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 8 when task CPU limit is 16 and container CPU limit is 8192 vCPU",
 			wantCPU:      8,
 			containerCPU: 8 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 16 when task CPU limit is 16 and container CPU limit is 16384 vCPU",
 			wantCPU:      16,
 			containerCPU: 16 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		// For tasks that are hosted on Amazon EC2 instances, the CPU limit is optional.
 		// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
@@ -165,7 +149,6 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 			wantCPU:      16,
 			containerCPU: 16 << 10,
 			taskCPU:      0,
-			testServer:   testServerContainerLimit,
 		},
 	}
 
@@ -173,11 +156,16 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := tt.testServer(t, tt.containerCPU, tt.taskCPU)
-			defer ts.Close()
+			a := agent.NewV4Builder(t).
+				WithContainerMetaEndpoint(tt.containerCPU).
+				WithTaskMetaEndpoint(tt.containerCPU, tt.taskCPU).
+				Start()
+			defer a.Close()
 
-			containerURI, taskURI := buildMetaEndpoints(ts)
-			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
+			ecsTask := task.New(config.Config{
+				ContainerMetadataURI: a.GetContainerMetaEndpoint(),
+				TaskMetadataURI:      a.GetTaskMetaEndpoint(),
+			})
 
 			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
 			require.NoError(t, err)
@@ -242,6 +230,8 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 	for _, tt := range tableTest {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
+			// a := agent.NewV4Builder(t).
 
 			ts := tt.testServer(t, tt.taskCPU)
 			defer ts.Close()

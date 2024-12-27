@@ -9,7 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
+const (
+	metaURIEnv   = "ECS_CONTAINER_METADATA_URI_V4"
+	taskMetaPath = "/task"
+)
 
 // ECSAgentV4 is a test server that simulates the ECS Agent metadata API.
 type ECSAgentV4 struct {
@@ -52,6 +55,24 @@ func (e *ECSAgentV4) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgentV4
 	return e
 }
 
+// WithTaskMetaEndpointNoContainer sets up the task CPU endpoint on the test server without any container metadata.
+func (e *ECSAgentV4) WithTaskMetaEndpointNoContainer(containerCPU int) *ECSAgentV4 {
+	e.t.Helper()
+	e.mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
+		_, err := w.Write([]byte(fmt.Sprintf(
+			`{"Containers":[{"DockerId":"container-id"}],"Limits":{"CPU":%d}}`,
+			containerCPU,
+		)))
+		assert.NoError(e.t, err)
+	})
+	return e
+}
+
+// return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+// _, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
+// assert.NoError(t, err)
+// }))
+
 // Start starts the test server.
 func (e *ECSAgentV4) Start() *ECSAgentV4 {
 	e.t.Helper()
@@ -71,4 +92,14 @@ func (e *ECSAgentV4) SetMetaURIEnv() *ECSAgentV4 {
 // Close closes the test server.
 func (e *ECSAgentV4) Close() {
 	e.server.Close()
+}
+
+// GetContainerMetaEndpoint returns the container metadata endpoint.
+func (e *ECSAgentV4) GetContainerMetaEndpoint() string {
+	return e.server.URL
+}
+
+// GetTaskMetaEndpoint returns the task metadata endpoint.
+func (e *ECSAgentV4) GetTaskMetaEndpoint() string {
+	return e.server.URL + taskMetaPath
 }
