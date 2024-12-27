@@ -231,13 +231,16 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// a := agent.NewV4Builder(t).
+			a := agent.NewV4Builder(t).
+				WithContainerMetaEndpoint(0).
+				WithTaskMetaEndpoint(0, tt.taskCPU).
+				Start()
+			defer a.Close()
 
-			ts := tt.testServer(t, tt.taskCPU)
-			defer ts.Close()
-
-			containerURI, taskURI := buildMetaEndpoints(ts)
-			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
+			ecsTask := task.New(config.Config{
+				ContainerMetadataURI: a.GetContainerMetaEndpoint(),
+				TaskMetadataURI:      a.GetTaskMetaEndpoint(),
+			})
 
 			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
 			require.NoError(t, err)
