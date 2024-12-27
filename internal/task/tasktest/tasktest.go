@@ -26,7 +26,6 @@ type ECSAgent struct {
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html
 func NewECSAgent(t *testing.T) *ECSAgent {
 	t.Helper()
-
 	mux := http.NewServeMux()
 	return &ECSAgent{t, mux, nil, 0}
 }
@@ -51,6 +50,24 @@ func (e *ECSAgent) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgent {
 			taskCPU,
 		)))
 		assert.NoError(e.t, err)
+	})
+	return e
+}
+
+// WithContainerMetaEndpointInternalServerError sets up the container meta endpoint to return an internal server error.
+func (e *ECSAgent) WithContainerMetaEndpointInternalServerError() *ECSAgent {
+	e.t.Helper()
+	e.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	return e
+}
+
+// WithTaskMetaEndpointInternalServerError sets up the task meta endpoint to return an internal server error.
+func (e *ECSAgent) WithTaskMetaEndpointInternalServerError() *ECSAgent {
+	e.t.Helper()
+	e.mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
 	})
 	return e
 }

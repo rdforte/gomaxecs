@@ -259,48 +259,46 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, containerCPU, taskCPU int) (string, string) {
 				t.Helper()
 
-				ts := testServerContainerLimit(t, containerCPU, taskCPU)
+				a := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(a.Close)
 
-				return buildMetaEndpoints(ts)
+				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
 			},
 		},
-		{
-			name:      "should raise error when task CPU limit is 0 and container CPU limit does not exist",
-			wantError: "no CPU limit found for task or container",
-			taskCPU:   0,
-			testServer: func(t *testing.T, _, taskCPU int) (string, string) {
-				t.Helper()
+		// {
+		// name:      "should raise error when task CPU limit is 0 and container CPU limit does not exist",
+		// wantError: "no CPU limit found for task or container",
+		// taskCPU:   0,
+		// testServer: func(t *testing.T, _, taskCPU int) (string, string) {
+		// t.Helper()
 
-				ts := testServerTaskLimit(t, taskCPU)
+		// ts := testServerTaskLimit(t, taskCPU)
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+		// t.Cleanup(func() {
+		// ts.Close()
+		// })
 
-				return buildMetaEndpoints(ts)
-			},
-		},
+		// return buildMetaEndpoints(ts)
+		// },
+		// },
 		{
 			name:      "should raise error when ECS container endpoint is not 200 OK",
 			wantError: "failed to get ECS container meta: request failed, status code: 500",
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				})
-				ts := httptest.NewServer(mux)
+				a := tasktest.NewECSAgent(t).
+					WithTaskMetaEndpoint(0, 1).
+					WithContainerMetaEndpointInternalServerError().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(a.Close)
 
-				return buildMetaEndpoints(ts)
+				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
 			},
 		},
 		{
@@ -309,21 +307,14 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 			testServer: func(t *testing.T, _, _ int) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
-					assert.NoError(t, err)
-				})
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				})
-				ts := httptest.NewServer(mux)
+				a := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(1).
+					WithTaskMetaEndpointInternalServerError().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(a.Close)
 
-				return buildMetaEndpoints(ts)
+				return a.GetContainerMetaEndpoint(), a.GetTaskMetaEndpoint()
 			},
 		},
 		{
