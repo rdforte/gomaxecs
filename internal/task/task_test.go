@@ -178,52 +178,44 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 	t.Parallel()
 
 	tableTest := []struct {
-		name       string
-		wantCPU    int
-		taskCPU    int
-		testServer func(t *testing.T, taskCPU int) *httptest.Server
+		name    string
+		wantCPU int
+		taskCPU int
 	}{
 		{
-			name:       "should get cpu of 1 when task CPU limit is 0.25 and no container CPU limit set",
-			wantCPU:    1,
-			taskCPU:    1,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 1 when task CPU limit is 0.25 and no container CPU limit set",
+			wantCPU: 1,
+			taskCPU: 1,
 		},
 		{
-			name:       "should get cpu of 1 when task CPU limit is 0.5 and no container CPU limit set",
-			wantCPU:    1,
-			taskCPU:    1,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 1 when task CPU limit is 0.5 and no container CPU limit set",
+			wantCPU: 1,
+			taskCPU: 1,
 		},
 		{
-			name:       "should get cpu of 1 when task CPU limit is 1 and no container CPU limit set",
-			wantCPU:    1,
-			taskCPU:    1,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 1 when task CPU limit is 1 and no container CPU limit set",
+			wantCPU: 1,
+			taskCPU: 1,
 		},
 		{
-			name:       "should get cpu of 2 when task CPU limit is 2 and no container CPU limit set",
-			wantCPU:    2,
-			taskCPU:    2,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 2 when task CPU limit is 2 and no container CPU limit set",
+			wantCPU: 2,
+			taskCPU: 2,
 		},
 		{
-			name:       "should get cpu of 4 when task CPU limit is 4 and no container CPU limit set",
-			wantCPU:    4,
-			taskCPU:    4,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 4 when task CPU limit is 4 and no container CPU limit set",
+			wantCPU: 4,
+			taskCPU: 4,
 		},
 		{
-			name:       "should get cpu of 8 when task CPU limit is 8 and no container CPU limit set",
-			wantCPU:    8,
-			taskCPU:    8,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 8 when task CPU limit is 8 and no container CPU limit set",
+			wantCPU: 8,
+			taskCPU: 8,
 		},
 		{
-			name:       "should get cpu of 16 when task CPU limit is 16 and no container CPU limit set",
-			wantCPU:    16,
-			taskCPU:    16,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 16 when task CPU limit is 16 and no container CPU limit set",
+			wantCPU: 16,
+			taskCPU: 16,
 		},
 	}
 
