@@ -59,7 +59,8 @@ func (e *ECSAgent) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgent {
 	return e
 }
 
-// WithContainerMetaEndpointInternalServerError sets up the container metadata endpoint to return an internal server error.
+// WithContainerMetaEndpointInternalServerError sets up the container metadata endpoint
+// to return an internal server error.
 func (e *ECSAgent) WithContainerMetaEndpointInternalServerError() *ECSAgent {
 	e.t.Helper()
 
