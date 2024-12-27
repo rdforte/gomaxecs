@@ -21,13 +21,12 @@
 package gomaxecs
 
 import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/rdforte/gomaxecs/internal/test/agent"
 )
 
 func TestGomaxecs_runSetMaxProcs_NoECSEnvDetected(t *testing.T) {
@@ -39,29 +38,9 @@ func TestGomaxecs_runSetMaxProcs_NoECSEnvDetected(t *testing.T) {
 func TestGomaxecs_runSetMaxProcs_ECSEnvDetected(t *testing.T) {
 	curMaxProcs := 1
 	runtime.GOMAXPROCS(curMaxProcs)
-	// set env variable to simulate ECS environment
-	ts := testServerContainerLimit(t, 2<<10, 2)
-	t.Setenv("ECS_CONTAINER_METADATA_URI_V4", ts.URL)
+	containerCPU := 2 << 10
+	taskCPU := 2
+	agent.New(t, containerCPU, taskCPU).SetServerURL()
 	runSetMaxProcs()
 	assert.Equal(t, 2, runtime.GOMAXPROCS(0))
-}
-
-func testServerContainerLimit(t *testing.T, containerCPU, taskCPU int) *httptest.Server {
-	t.Helper()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
-		assert.NoError(t, err)
-	})
-	mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(
-			`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`,
-			containerCPU,
-			taskCPU,
-		)))
-		assert.NoError(t, err)
-	})
-
-	return httptest.NewServer(mux)
 }
