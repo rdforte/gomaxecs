@@ -31,7 +31,7 @@ func NewECSAgent(t *testing.T) *ECSAgent {
 	return &ECSAgent{t, mux, nil}
 }
 
-// WithContainerMetaEndpoint sets up the container CPU endpoint on the test server.
+// WithContainerMetaEndpoint sets up the container metadata endpoint on the test server.
 func (e *ECSAgent) WithContainerMetaEndpoint(containerCPU int) *ECSAgent {
 	e.t.Helper()
 
@@ -43,7 +43,7 @@ func (e *ECSAgent) WithContainerMetaEndpoint(containerCPU int) *ECSAgent {
 	return e
 }
 
-// WithTaskMetaEndpoint sets up the task CPU endpoint on the test server.
+// WithTaskMetaEndpoint sets up the task metadata endpoint on the test server.
 func (e *ECSAgent) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgent {
 	e.t.Helper()
 
@@ -59,7 +59,7 @@ func (e *ECSAgent) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgent {
 	return e
 }
 
-// WithContainerMetaEndpointInternalServerError sets up the container meta endpoint to return an internal server error.
+// WithContainerMetaEndpointInternalServerError sets up the container metadata endpoint to return an internal server error.
 func (e *ECSAgent) WithContainerMetaEndpointInternalServerError() *ECSAgent {
 	e.t.Helper()
 
@@ -70,7 +70,7 @@ func (e *ECSAgent) WithContainerMetaEndpointInternalServerError() *ECSAgent {
 	return e
 }
 
-// WithTaskMetaEndpointInternalServerError sets up the task meta endpoint to return an internal server error.
+// WithTaskMetaEndpointInternalServerError sets up the task metadata endpoint to return an internal server error.
 func (e *ECSAgent) WithTaskMetaEndpointInternalServerError() *ECSAgent {
 	e.t.Helper()
 
@@ -81,7 +81,7 @@ func (e *ECSAgent) WithTaskMetaEndpointInternalServerError() *ECSAgent {
 	return e
 }
 
-// WithContainerMetaEndpointInvalidJSON sets up the container meta endpoint to return invalid JSON.
+// WithContainerMetaEndpointInvalidJSON sets up the container metadata endpoint to return invalid JSON.
 func (e *ECSAgent) WithContainerMetaEndpointInvalidJSON() *ECSAgent {
 	e.t.Helper()
 	e.mux.HandleFunc("/", e.invalidJSONHandler)
@@ -89,7 +89,7 @@ func (e *ECSAgent) WithContainerMetaEndpointInvalidJSON() *ECSAgent {
 	return e
 }
 
-// WithTaskMetaEndpointInvalidJSON sets up the task meta endpoint to return invalid JSON.
+// WithTaskMetaEndpointInvalidJSON sets up the task metadata endpoint to return invalid JSON.
 func (e *ECSAgent) WithTaskMetaEndpointInvalidJSON() *ECSAgent {
 	e.t.Helper()
 	e.mux.HandleFunc(taskMetaPath, e.invalidJSONHandler)
