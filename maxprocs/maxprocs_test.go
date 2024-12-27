@@ -4,15 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/rdforte/gomaxecs/internal/task/tasktest"
 	"github.com/rdforte/gomaxecs/maxprocs"
 )
 
@@ -22,19 +20,13 @@ const (
 	containerCPU = 2 << 10
 )
 
-func TestMain(m *testing.M) {
-	if err := os.Unsetenv(metaURIEnv); err != nil {
-		log.Fatalf("failed to unset %s: %v", metaURIEnv, err)
-	}
-
-	os.Exit(m.Run())
-}
-
 func TestMaxProcs_Set_SuccessfullySetsGOMAXPROCS(t *testing.T) {
-	ts := testServerContainerLimit(t, containerCPU, taskCPU)
-	defer ts.Close()
-
-	t.Setenv(metaURIEnv, ts.URL)
+	agent := tasktest.NewECSAgent(t).
+		WithContainerMetaEndpoint(containerCPU).
+		WithTaskMetaEndpoint(containerCPU, taskCPU).
+		Start().
+		SetMetaURIEnv()
+	defer agent.Close()
 
 	_, err := maxprocs.Set()
 	require.NoError(t, err)
@@ -64,10 +56,13 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			setup: func(t *testing.T) {
 				t.Helper()
 
-				ts := testServerContainerLimit(t, containerCPU, taskCPU)
-				t.Cleanup(ts.Close)
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start().
+					SetMetaURIEnv()
 
-				t.Setenv(metaURIEnv, ts.URL)
+				t.Cleanup(agent.Close)
 			},
 		},
 		{
@@ -76,10 +71,14 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			setup: func(t *testing.T) {
 				t.Helper()
 
-				ts := testServerContainerLimit(t, 0, taskCPU)
-				t.Cleanup(ts.Close)
+				containerCPU := 0
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start().
+					SetMetaURIEnv()
 
-				t.Setenv(metaURIEnv, ts.URL)
+				t.Cleanup(agent.Close)
 			},
 		},
 		{
@@ -88,12 +87,13 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			setup: func(t *testing.T) {
 				t.Helper()
 
-				ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				}))
-				t.Cleanup(ts.Close)
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpointInternalServerError().
+					WithTaskMetaEndpointInternalServerError().
+					Start().
+					SetMetaURIEnv()
 
-				t.Setenv(metaURIEnv, ts.URL)
+				t.Cleanup(agent.Close)
 			},
 		},
 	}
@@ -132,10 +132,12 @@ func TestMaxProcs_Set_UndoResetsGOMAXPROCS(t *testing.T) {
 	taskCPU := 10
 	containerCPU := 0
 
-	ts := testServerContainerLimit(t, containerCPU, taskCPU)
-	defer ts.Close()
-
-	t.Setenv(metaURIEnv, ts.URL)
+	agent := tasktest.NewECSAgent(t).
+		WithContainerMetaEndpoint(containerCPU).
+		WithTaskMetaEndpoint(containerCPU, taskCPU).
+		Start().
+		SetMetaURIEnv()
+	defer agent.Close()
 
 	buf := new(bytes.Buffer)
 	logger := log.New(buf, "", 0)
@@ -158,24 +160,4 @@ func TestMaxProcs_IsECS_ReturnsTrueIfDetectedECSEnvironment(t *testing.T) {
 
 func TestMaxProcs_IsECS_ReturnsFalseIfNotDetectedECSEnvironment(t *testing.T) {
 	assert.False(t, maxprocs.IsECS())
-}
-
-func testServerContainerLimit(t *testing.T, containerCPU, taskCPU int) *httptest.Server {
-	t.Helper()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
-		assert.NoError(t, err)
-	})
-	mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(
-			`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`,
-			containerCPU,
-			taskCPU,
-		)))
-		assert.NoError(t, err)
-	})
-
-	return httptest.NewServer(mux)
 }

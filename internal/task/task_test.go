@@ -22,9 +22,6 @@ package task_test
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,9 +29,8 @@ import (
 
 	"github.com/rdforte/gomaxecs/internal/config"
 	"github.com/rdforte/gomaxecs/internal/task"
+	"github.com/rdforte/gomaxecs/internal/task/tasktest"
 )
-
-const taskMetaPath = "/task"
 
 func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 	t.Parallel()
@@ -44,119 +40,102 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		wantCPU      int
 		containerCPU int
 		taskCPU      int
-		testServer   func(t *testing.T, containerCPU, taskCPU int) *httptest.Server
 	}{
 		{
 			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 512 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 9,
 			taskCPU:      1,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 1 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      1,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 2 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      2,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 4 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      4,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 8 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 1 when task CPU limit is 16 and container CPU limit is 1024 vCPU",
 			wantCPU:      1,
 			containerCPU: 1 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 2 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      2,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 4 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      2,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 8 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 2 when task CPU limit is 16 and container CPU limit is 2048 vCPU",
 			wantCPU:      2,
 			containerCPU: 2 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 4 and container CPU limit is 4096 vCPU",
 			wantCPU:      4,
 			containerCPU: 4 << 10,
 			taskCPU:      4,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 8 and container CPU limit is 4096 vCPU",
 			wantCPU:      4,
 			containerCPU: 4 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 4 when task CPU limit is 16 and container CPU limit is 4096 vCPU",
 			wantCPU:      4,
 			containerCPU: 4 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 8 when task CPU limit is 8 and container CPU limit is 8192 vCPU",
 			wantCPU:      8,
 			containerCPU: 8 << 10,
 			taskCPU:      8,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 8 when task CPU limit is 16 and container CPU limit is 8192 vCPU",
 			wantCPU:      8,
 			containerCPU: 8 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		{
 			name:         "should get cpu of 16 when task CPU limit is 16 and container CPU limit is 16384 vCPU",
 			wantCPU:      16,
 			containerCPU: 16 << 10,
 			taskCPU:      16,
-			testServer:   testServerContainerLimit,
 		},
 		// For tasks that are hosted on Amazon EC2 instances, the CPU limit is optional.
 		// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
@@ -165,7 +144,6 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 			wantCPU:      16,
 			containerCPU: 16 << 10,
 			taskCPU:      0,
-			testServer:   testServerContainerLimit,
 		},
 	}
 
@@ -173,11 +151,16 @@ func TestTask_GetMaxProcs_GetsCPUUsingContainerLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := tt.testServer(t, tt.containerCPU, tt.taskCPU)
-			defer ts.Close()
+			agent := tasktest.NewECSAgent(t).
+				WithContainerMetaEndpoint(tt.containerCPU).
+				WithTaskMetaEndpoint(tt.containerCPU, tt.taskCPU).
+				Start()
+			defer agent.Close()
 
-			containerURI, taskURI := buildMetaEndpoints(ts)
-			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
+			ecsTask := task.New(config.Config{
+				ContainerMetadataURI: agent.GetContainerMetaEndpoint(),
+				TaskMetadataURI:      agent.GetTaskMetaEndpoint(),
+			})
 
 			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
 			require.NoError(t, err)
@@ -190,52 +173,44 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 	t.Parallel()
 
 	tableTest := []struct {
-		name       string
-		wantCPU    int
-		taskCPU    int
-		testServer func(t *testing.T, taskCPU int) *httptest.Server
+		name    string
+		wantCPU int
+		taskCPU int
 	}{
 		{
-			name:       "should get cpu of 1 when task CPU limit is 0.25 and no container CPU limit set",
-			wantCPU:    1,
-			taskCPU:    1,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 1 when task CPU limit is 0.25 and no container CPU limit set",
+			wantCPU: 1,
+			taskCPU: 1,
 		},
 		{
-			name:       "should get cpu of 1 when task CPU limit is 0.5 and no container CPU limit set",
-			wantCPU:    1,
-			taskCPU:    1,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 1 when task CPU limit is 0.5 and no container CPU limit set",
+			wantCPU: 1,
+			taskCPU: 1,
 		},
 		{
-			name:       "should get cpu of 1 when task CPU limit is 1 and no container CPU limit set",
-			wantCPU:    1,
-			taskCPU:    1,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 1 when task CPU limit is 1 and no container CPU limit set",
+			wantCPU: 1,
+			taskCPU: 1,
 		},
 		{
-			name:       "should get cpu of 2 when task CPU limit is 2 and no container CPU limit set",
-			wantCPU:    2,
-			taskCPU:    2,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 2 when task CPU limit is 2 and no container CPU limit set",
+			wantCPU: 2,
+			taskCPU: 2,
 		},
 		{
-			name:       "should get cpu of 4 when task CPU limit is 4 and no container CPU limit set",
-			wantCPU:    4,
-			taskCPU:    4,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 4 when task CPU limit is 4 and no container CPU limit set",
+			wantCPU: 4,
+			taskCPU: 4,
 		},
 		{
-			name:       "should get cpu of 8 when task CPU limit is 8 and no container CPU limit set",
-			wantCPU:    8,
-			taskCPU:    8,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 8 when task CPU limit is 8 and no container CPU limit set",
+			wantCPU: 8,
+			taskCPU: 8,
 		},
 		{
-			name:       "should get cpu of 16 when task CPU limit is 16 and no container CPU limit set",
-			wantCPU:    16,
-			taskCPU:    16,
-			testServer: testServerTaskLimit,
+			name:    "should get cpu of 16 when task CPU limit is 16 and no container CPU limit set",
+			wantCPU: 16,
+			taskCPU: 16,
 		},
 	}
 
@@ -243,11 +218,18 @@ func TestTask_GetMaxProcs_GetsCPUUsingTaskLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := tt.testServer(t, tt.taskCPU)
-			defer ts.Close()
+			containerCPU := 0
 
-			containerURI, taskURI := buildMetaEndpoints(ts)
-			ecsTask := task.New(config.Config{ContainerMetadataURI: containerURI, TaskMetadataURI: taskURI})
+			agent := tasktest.NewECSAgent(t).
+				WithContainerMetaEndpoint(containerCPU).
+				WithTaskMetaEndpoint(containerCPU, tt.taskCPU).
+				Start()
+			defer agent.Close()
+
+			ecsTask := task.New(config.Config{
+				ContainerMetadataURI: agent.GetContainerMetaEndpoint(),
+				TaskMetadataURI:      agent.GetTaskMetaEndpoint(),
+			})
 
 			gotCPU, err := ecsTask.GetMaxProcs(context.Background())
 			require.NoError(t, err)
@@ -260,154 +242,112 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 	t.Parallel()
 
 	tableTest := []struct {
-		name         string
-		wantError    string
-		containerCPU int
-		taskCPU      int
-		testServer   func(t *testing.T, containerCPU, taskCPU int) (containerMetaURI, taskMetaURI string)
+		name       string
+		wantError  string
+		testServer func(t *testing.T) (containerMetaURI, taskMetaURI string)
 	}{
 		{
-			name:         "should raise error when task CPU limit is 0 and container CPU limit is 0",
-			wantError:    "no CPU limit found for task or container",
-			containerCPU: 0,
-			taskCPU:      0,
-			testServer: func(t *testing.T, containerCPU, taskCPU int) (string, string) {
-				t.Helper()
-
-				ts := testServerContainerLimit(t, containerCPU, taskCPU)
-
-				t.Cleanup(func() {
-					ts.Close()
-				})
-
-				return buildMetaEndpoints(ts)
-			},
-		},
-		{
-			name:      "should raise error when task CPU limit is 0 and container CPU limit does not exist",
+			name:      "should raise error when task CPU limit is 0 and container CPU limit is 0",
 			wantError: "no CPU limit found for task or container",
-			taskCPU:   0,
-			testServer: func(t *testing.T, _, taskCPU int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				ts := testServerTaskLimit(t, taskCPU)
+				containerCPU, taskCPU := 0, 0
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start()
 
-				return buildMetaEndpoints(ts)
+				t.Cleanup(agent.Close)
+
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when ECS container endpoint is not 200 OK",
 			wantError: "failed to get ECS container meta: request failed, status code: 500",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				})
-				ts := httptest.NewServer(mux)
+				containerCPU, taskCPU := 0, 1
+				agent := tasktest.NewECSAgent(t).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					WithContainerMetaEndpointInternalServerError().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(agent.Close)
 
-				return buildMetaEndpoints(ts)
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when ECS task endpoint is not 200 OK",
 			wantError: "failed to get ECS task meta: request failed, status code: 500",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
-					assert.NoError(t, err)
-				})
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				})
-				ts := httptest.NewServer(mux)
+				containerCPU := 1
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpointInternalServerError().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(agent.Close)
 
-				return buildMetaEndpoints(ts)
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when fail to unmarshal ECS container meta",
 			wantError: "failed to get ECS container meta: unmarshal failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte("invlaid-json"))
-					assert.NoError(t, err)
-				})
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(
-						`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`,
-						1,
-						1024,
-					)))
-					assert.NoError(t, err)
-				})
-				ts := httptest.NewServer(mux)
+				containerCPU, taskCPU := 1<<10, 1
+				agent := tasktest.NewECSAgent(t).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					WithContainerMetaEndpointInvalidJSON().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(agent.Close)
 
-				return buildMetaEndpoints(ts)
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when fail to unmarshal ECS task meta",
 			wantError: "failed to get ECS task meta: unmarshal failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				mux := http.NewServeMux()
-				mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte("invlaid-json"))
-					assert.NoError(t, err)
-				})
-				mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-					_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, 0)))
-					assert.NoError(t, err)
-				})
-				ts := httptest.NewServer(mux)
+				containerCPU := 1 << 10
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpointInvalidJSON().
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(agent.Close)
 
-				return buildMetaEndpoints(ts)
+				return agent.GetContainerMetaEndpoint(), agent.GetTaskMetaEndpoint()
 			},
 		},
 		{
 			name:      "should raise error when fail to get ECS container meta",
 			wantError: "failed to get ECS container meta: request failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				cpu := 1
-				ts := testServerTaskLimit(t, cpu)
+				containerCPU, taskCPU := 1<<10, 1
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(agent.Close)
 
-				_, taskURI := buildMetaEndpoints(ts)
 				containerURI := "invalid-uri"
+				taskURI := agent.GetTaskMetaEndpoint()
 
 				return containerURI, taskURI
 			},
@@ -415,17 +355,18 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 		{
 			name:      "should raise error when fail to get ECS task meta",
 			wantError: "failed to get ECS task meta: request failed",
-			testServer: func(t *testing.T, _, _ int) (string, string) {
+			testServer: func(t *testing.T) (string, string) {
 				t.Helper()
 
-				cpu := 1
-				ts := testServerTaskLimit(t, cpu)
+				containerCPU, taskCPU := 1<<10, 1
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpoint(containerCPU).
+					WithTaskMetaEndpoint(containerCPU, taskCPU).
+					Start()
 
-				t.Cleanup(func() {
-					ts.Close()
-				})
+				t.Cleanup(agent.Close)
 
-				containerURI, _ := buildMetaEndpoints(ts)
+				containerURI := agent.GetContainerMetaEndpoint()
 				taskURI := "invalid-uri"
 
 				return containerURI, taskURI
@@ -437,45 +378,11 @@ func TestTask_GetMaxProcs_ReturnsErrorWhenFailToGetNumCPU(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			containerMetaURI, taskMetaURI := tt.testServer(t, tt.containerCPU, tt.taskCPU)
-
+			containerMetaURI, taskMetaURI := tt.testServer(t)
 			ecsTask := task.New(config.Config{ContainerMetadataURI: containerMetaURI, TaskMetadataURI: taskMetaURI})
 
 			_, err := ecsTask.GetMaxProcs(context.Background())
 			assert.ErrorContains(t, err, tt.wantError)
 		})
 	}
-}
-
-func testServerContainerLimit(t *testing.T, containerCPU, taskCPU int) *httptest.Server {
-	t.Helper()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
-		assert.NoError(t, err)
-	})
-	mux.HandleFunc(taskMetaPath, func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(
-			`{"Limits":{"CPU":%d},"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}]}`,
-			taskCPU,
-			containerCPU,
-		)))
-		assert.NoError(t, err)
-	})
-
-	return httptest.NewServer(mux)
-}
-
-func testServerTaskLimit(t *testing.T, taskCPU int) *httptest.Server {
-	t.Helper()
-
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, taskCPU)))
-		assert.NoError(t, err)
-	}))
-}
-
-func buildMetaEndpoints(ts *httptest.Server) (containerMetaURI, taskMetaURI string) {
-	return ts.URL, ts.URL + taskMetaPath
 }
