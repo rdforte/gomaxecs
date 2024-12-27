@@ -29,7 +29,7 @@ import (
 	"github.com/rdforte/gomaxecs/internal/test/agent"
 )
 
-func TestGomaxecs_runSetMaxProcs_NoECSEnvDetected(t *testing.T) {
+func TestGomaxecs_runSetMaxProcs_ECSEnvNotDetected(t *testing.T) {
 	curMaxProcs := runtime.GOMAXPROCS(0)
 	runSetMaxProcs()
 	assert.Equal(t, curMaxProcs, runtime.GOMAXPROCS(0))
@@ -38,9 +38,18 @@ func TestGomaxecs_runSetMaxProcs_NoECSEnvDetected(t *testing.T) {
 func TestGomaxecs_runSetMaxProcs_ECSEnvDetected(t *testing.T) {
 	curMaxProcs := 1
 	runtime.GOMAXPROCS(curMaxProcs)
-	containerCPU := 2 << 10
-	taskCPU := 2
-	agent.New(t, containerCPU, taskCPU).SetServerURL()
+
+	wantCPUs := 2
+	containerCPU, taskCPU := wantCPUs<<10, wantCPUs
+
+	a := agent.NewV4Builder(t).
+		WithContainerMetaEndpoint(containerCPU).
+		WithTaskMetaEndpoint(containerCPU, taskCPU).
+		Start().
+		SetMetaURIEnv()
+	defer a.Close()
+
 	runSetMaxProcs()
-	assert.Equal(t, 2, runtime.GOMAXPROCS(0))
+
+	assert.Equal(t, wantCPUs, runtime.GOMAXPROCS(0))
 }

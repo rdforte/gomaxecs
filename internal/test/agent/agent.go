@@ -9,37 +9,66 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type ECSAgent struct {
-	server *httptest.Server
-	t      *testing.T
+const metaURIEnv = "ECS_CONTAINER_METADATA_URI_V4"
+
+// ECSAgentV4 is a test server that simulates the ECS Agent metadata API.
+type ECSAgentV4 struct {
+	t            *testing.T
+	mux          *http.ServeMux
+	server       *httptest.Server
+	containerCPU int
 }
 
-// New is a helper function to create a new test server that simulates
-// the ECS Agent metadata API.
+// NewBuilder builds a new test server that simulates the ECS Agent metadata API.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html
-func New(t *testing.T, containerCPU, taskCPU int) *ECSAgent {
+func NewV4Builder(t *testing.T) *ECSAgentV4 {
 	t.Helper()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+	return &ECSAgentV4{t, mux, nil, 0}
+}
+
+// WithContainerMetaEndpoint sets up the container CPU endpoint on the test server.
+func (e *ECSAgentV4) WithContainerMetaEndpoint(containerCPU int) *ECSAgentV4 {
+	e.t.Helper()
+	e.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
-		assert.NoError(t, err)
+		assert.NoError(e.t, err)
 	})
-	mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
+	return e
+}
+
+// WithTaskMetaEndpoint sets up the task CPU endpoint on the test server.
+func (e *ECSAgentV4) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgentV4 {
+	e.t.Helper()
+	e.mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write([]byte(fmt.Sprintf(
 			`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`,
 			containerCPU,
 			taskCPU,
 		)))
-		assert.NoError(t, err)
+		assert.NoError(e.t, err)
 	})
-
-	return &ECSAgent{httptest.NewServer(mux), t}
+	return e
 }
 
-// SetServerURL is a helper function to set the server url for ECS_CONTAINER_METADATA_URI_V4 environment variable.
-// This is useful for testing the ECS metadata API.
-func (e *ECSAgent) SetServerURL() {
+// Start starts the test server.
+func (e *ECSAgentV4) Start() *ECSAgentV4 {
 	e.t.Helper()
-	e.t.Setenv("ECS_CONTAINER_METADATA_URI_V4", e.server.URL)
+	e.server = httptest.NewServer(e.mux)
+	return e
+}
+
+// SetMetaURIEnv is a helper function to set the server url for ECS_CONTAINER_METADATA_URI_V4 environment variable.
+// This is useful for testing the ECS metadata API.
+func (e *ECSAgentV4) SetMetaURIEnv() *ECSAgentV4 {
+	e.t.Helper()
+	assert.NotNil(e.t, e.server)
+	e.t.Setenv(metaURIEnv, e.server.URL)
+	return e
+}
+
+// Close closes the test server.
+func (e *ECSAgentV4) Close() {
+	e.server.Close()
 }
