@@ -21,6 +21,7 @@
 // NOTE: This file is intentionally testing a private function.
 // This is to ensure that the function runSetMaxProcs is tested
 // and remains private to the package.
+
 package gomaxecs //nolint:testpackage // Test private function.
 
 import (

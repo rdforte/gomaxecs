@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"runtime"
 	"testing"
 
@@ -22,14 +19,6 @@ const (
 	taskCPU      = 8
 	containerCPU = 2 << 10
 )
-
-func TestMain(m *testing.M) {
-	if err := os.Unsetenv(metaURIEnv); err != nil {
-		log.Fatalf("failed to unset %s: %v", metaURIEnv, err)
-	}
-
-	os.Exit(m.Run())
-}
 
 func TestMaxProcs_Set_SuccessfullySetsGOMAXPROCS(t *testing.T) {
 	agent := tasktest.NewECSAgent(t).
@@ -98,12 +87,13 @@ func TestMaxProcs_Set_LoggerShouldLog(t *testing.T) {
 			setup: func(t *testing.T) {
 				t.Helper()
 
-				ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				}))
-				t.Cleanup(ts.Close)
+				agent := tasktest.NewECSAgent(t).
+					WithContainerMetaEndpointInternalServerError().
+					WithTaskMetaEndpointInternalServerError().
+					Start().
+					SetMetaURIEnv()
 
-				t.Setenv(metaURIEnv, ts.URL)
+				t.Cleanup(agent.Close)
 			},
 		},
 	}
