@@ -16,10 +16,9 @@ const (
 
 // ECSAgent is a test server that simulates the ECS Agent metadata API.
 type ECSAgent struct {
-	t            *testing.T
-	mux          *http.ServeMux
-	server       *httptest.Server
-	containerCPU int
+	t      *testing.T
+	mux    *http.ServeMux
+	server *httptest.Server
 }
 
 // NewECSAgent builds a new test server that simulates the ECS Agent metadata API.
@@ -29,7 +28,7 @@ func NewECSAgent(t *testing.T) *ECSAgent {
 
 	mux := http.NewServeMux()
 
-	return &ECSAgent{t, mux, nil, 0}
+	return &ECSAgent{t, mux, nil}
 }
 
 // WithContainerMetaEndpoint sets up the container CPU endpoint on the test server.
