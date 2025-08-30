@@ -10,7 +10,7 @@
 </div>
 
 > [!IMPORTANT]
-> Go v1.25 does not resolve the CFS issue for containers running in ECS.
+> Go v1.25 does NOT resolve the CFS issue for containers running in ECS. See below for more details.
 
 Package for auto setting GOMAXPROCS based on ECS task and container CPU limits.
 
@@ -93,6 +93,68 @@ In Kubernetes this issue is quite easy to solve as we have [uber automaxprocs](h
 behind **gomaxecs package**? Well Ubers automaxprocs does not work for ECS https://github.com/uber-go/automaxprocs/issues/66 because the cgroup `cpu.cfs_quota_us` is set to -1 🥲. The workaround for this
 is to then leverage [ECS Metadata](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint.html) as a means to sourcing the container limits and setting GOMAXPROCS at runtime.
 
+## Go 1.25
+
+The below experiment shows 2 containers each running with the following configuration:
+
+- Go v1.25
+- vCPU: 4096 (4)
+
+#### Task Definition
+
+Some fields have been omitted for brevity.
+
+```
+{
+  "compatibilities": [
+    "EC2",
+    "FARGATE"
+  ],
+  "containerDefinitions": [
+    {
+      "cpu": 4096,
+      "name": "c1",
+    },
+    {
+      "cpu": 4096,
+      "name": "c2",
+    }
+  ],
+  "cpu": "8192",
+  "memory": "16384",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+}
+
+```
+
+#### CloudWatch Logs (Without gomaxecs)
+
+| Timestamp (UTC+10:00)    | Message              | Container |
+| ------------------------ | -------------------- | --------- |
+| August 30, 2025 at 16:13 | Go version: go1.25.0 | c1        |
+| August 30, 2025 at 16:13 | GOMACPROCS: 8        | c1        |
+| August 30, 2025 at 16:13 | Go version: go1.25.0 | c2        |
+| August 30, 2025 at 16:13 | GOMACPROCS: 8        | c2        |
+
+**Expected Result:** GOMAXPROCS should be set to 4 as the container is limited to 4 vCPU's.
+
+#### CloudWatch Logs (With gomaxecs)
+
+| Timestamp (UTC+10:00)    | Message                                            | Container |
+| ------------------------ | -------------------------------------------------- | --------- |
+| August 30, 2025 at 16:27 | Go version: go1.25.0                               | c1        |
+| August 30, 2025 at 16:27 | GOMACPROCS: 4                                      | c1        |
+| August 30, 2025 at 16:27 | 2025/08/30 06:27:35 maxprocs: Updated GOMAXPROCS=4 | c1        |
+| August 30, 2025 at 16:27 | Go version: go1.25.0                               | c2        |
+| August 30, 2025 at 16:27 | GOMACPROCS: 4                                      | c2        |
+| August 30, 2025 at 16:27 | 2025/08/30 06:27:35 maxprocs: Updated GOMAXPROCS=4 | c2        |
+
 ## Contribution
 
 If anyone has any good ideas on how this package can be improved, all contributions are welcome.
@@ -101,6 +163,7 @@ If anyone has any good ideas on how this package can be improved, all contributi
 
 [100 Go Mistakes](https://100go.co/?h=kubernetes#not-understanding-the-impacts-of-running-go-in-docker-and-kubernetes-100) was the main source of inspiration for this package. The examples were borrowed from
 the book and modified to suit ECS.
+[Go 1.25 Release Notes](https://tip.golang.org/doc/go1.25#container-aware-gomaxprocs)
 
 <hr>
 
