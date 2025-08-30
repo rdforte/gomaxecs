@@ -146,6 +146,8 @@ Some fields have been omitted for brevity.
 
 #### CloudWatch Logs (With gomaxecs)
 
+The below logs show that GOMAXPROCS is correctly set to 4 when using the **gomaxecs** package.
+
 | Timestamp (UTC+10:00)    | Message                                            | Container |
 | ------------------------ | -------------------------------------------------- | --------- |
 | August 30, 2025 at 16:27 | Go version: go1.25.0                               | c1        |
@@ -161,9 +163,9 @@ If anyone has any good ideas on how this package can be improved, all contributi
 
 ## References
 
-[100 Go Mistakes](https://100go.co/?h=kubernetes#not-understanding-the-impacts-of-running-go-in-docker-and-kubernetes-100) was the main source of inspiration for this package. The examples were borrowed from
-the book and modified to suit ECS.
-[Go 1.25 Release Notes](https://tip.golang.org/doc/go1.25#container-aware-gomaxprocs)
+- [100 Go Mistakes](https://100go.co/?h=kubernetes#not-understanding-the-impacts-of-running-go-in-docker-and-kubernetes-100) was the main source of inspiration for this package. The examples were borrowed from
+  the book and modified to suit ECS.
+- [Go 1.25 Release Notes](https://tip.golang.org/doc/go1.25#container-aware-gomaxprocs)
 
 <hr>
 
