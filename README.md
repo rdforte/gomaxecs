@@ -9,6 +9,9 @@
 
 </div>
 
+> [!IMPORTANT]
+> Go v1.25 does not resolve the CFS issue for containers running in ECS.
+
 Package for auto setting GOMAXPROCS based on ECS task and container CPU limits.
 
 Due to Go not being CFS aware https://github.com/golang/go/issues/33803 and because [uber automaxprocs](https://github.com/uber-go/automaxprocs) is unable to set GOMAXPROCS for ECS https://github.com/uber-go/automaxprocs/issues/66. This lead to **gomaxecs**.
