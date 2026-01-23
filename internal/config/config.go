@@ -63,8 +63,8 @@ func New(opts ...Option) Config {
 		cfg.log = log.Printf
 	}
 
-	cfg.DebugLog("Debug logging enabled")
-	cfg.DebugLog("Setup config: %#v", cfg)
+	cfg.DebugLogf("Debug logging enabled")
+	cfg.DebugLogf("Setup config: %#v", cfg)
 
 	return cfg
 }
@@ -104,7 +104,7 @@ type Client struct {
 }
 
 // Log logs messages using the configured logger.
-func (c Config) Log(format string, args ...any) {
+func (c Config) Logf(format string, args ...any) {
 	if c.log != nil {
 		c.log(format, args...)
 	}
@@ -112,7 +112,7 @@ func (c Config) Log(format string, args ...any) {
 
 // DebugLog logs debug messages if debug is enabled.
 // Used for verbose logging during development or troubleshooting.
-func (c Config) DebugLog(format string, args ...any) {
+func (c Config) DebugLogf(format string, args ...any) {
 	if c.debugEnbabled && c.log != nil {
 		c.log("gomaxecs debug: "+format, args...)
 	}

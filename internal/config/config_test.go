@@ -57,7 +57,7 @@ func TestConfig_WithLogger_LogsMessage(t *testing.T) {
 
 	cfg := config.New(config.WithLogger(logger.Printf))
 
-	cfg.Log("test log: %s, %s", "arg1", "arg2")
+	cfg.Logf("test log: %s, %s", "arg1", "arg2")
 
 	wantLog := "test log: arg1, arg2\n"
 	assert.Equal(t, wantLog, buf.String())

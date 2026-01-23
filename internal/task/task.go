@@ -53,7 +53,7 @@ func New(cfg config.Config) *Task {
 		cfg.ContainerMetadataURI,
 		client.New(cfg),
 		// use the debug logger as we only want to show logs in task when debug enabled.
-		cfg.DebugLog,
+		cfg.DebugLogf,
 	}
 }
 
@@ -70,7 +70,7 @@ func (t *Task) GetMaxProcs(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("failed to get ECS container meta: %w", err)
 	}
 
-	t.log("Recieved container metadata: %#v", container)
+	t.log("Received container metadata: %#v", container)
 
 	task, err := t.getTaskMeta(ctx)
 	if err != nil {
@@ -78,7 +78,7 @@ func (t *Task) GetMaxProcs(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("failed to get ECS task meta: %w", err)
 	}
 
-	t.log("Recieved task metadata: %#v", container)
+	t.log("Received task metadata: %#v", container)
 
 	// Either the container limit or the task limit must be set
 	if container.Limits.CPU == 0 && task.Limits.CPU == 0 {

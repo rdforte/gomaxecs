@@ -34,7 +34,7 @@ import (
 // New returns a new Client.
 func New(cfg config.Config) *Client {
 	return &Client{
-		log: cfg.DebugLog,
+		log: cfg.DebugLogf,
 		client: &http.Client{
 			Timeout: cfg.Client.HTTPTimeout,
 			Transport: &http.Transport{
