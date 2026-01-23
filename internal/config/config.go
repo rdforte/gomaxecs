@@ -103,14 +103,14 @@ type Client struct {
 	ResponseHeaderTimeout time.Duration
 }
 
-// Log logs messages using the configured logger.
+// Logf logs messages using the configured logger.
 func (c Config) Logf(format string, args ...any) {
 	if c.log != nil {
 		c.log(format, args...)
 	}
 }
 
-// DebugLog logs debug messages if debug is enabled.
+// DebugLogf logs debug messages if debug is enabled.
 // Used for verbose logging during development or troubleshooting.
 func (c Config) DebugLogf(format string, args ...any) {
 	if c.debugEnbabled && c.log != nil {
