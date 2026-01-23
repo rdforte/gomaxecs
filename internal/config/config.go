@@ -39,7 +39,7 @@ func New(opts ...Option) Config {
 	uri := GetECSMetadataURI()
 
 	cfg := Config{
-		debugEnbabled:        isDebugEnabled(),
+		debugEnabled:         isDebugEnabled(),
 		TaskMetadataURI:      uri + taskPath,
 		ContainerMetadataURI: uri,
 		Client: Client{
@@ -59,7 +59,7 @@ func New(opts ...Option) Config {
 	}
 
 	// If debug is enabled and no logger is set, use the default log.Printf
-	if cfg.debugEnbabled && cfg.log == nil {
+	if cfg.debugEnabled && cfg.log == nil {
 		cfg.log = log.Printf
 	}
 
@@ -82,7 +82,7 @@ func GetECSMetadataURI() string {
 
 // Config represents the package configuration.
 type Config struct {
-	debugEnbabled        bool
+	debugEnabled         bool
 	ContainerMetadataURI string
 	TaskMetadataURI      string
 	Client               Client
@@ -113,7 +113,7 @@ func (c Config) Logf(format string, args ...any) {
 // DebugLogf logs debug messages if debug is enabled.
 // Used for verbose logging during development or troubleshooting.
 func (c Config) DebugLogf(format string, args ...any) {
-	if c.debugEnbabled && c.log != nil {
+	if c.debugEnabled && c.log != nil {
 		c.log("gomaxecs debug: "+format, args...)
 	}
 }
