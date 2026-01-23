@@ -49,7 +49,7 @@ func Set(opts ...config.Option) (undo func(), err error) {
 
 	procs, err := task.GetMaxProcs(context.Background())
 	if err != nil {
-		cfg.Logf("maxprocs: Failed to set GOMAXPROCS:", err)
+		cfg.Logf("maxprocs: Failed to set GOMAXPROCS: %v", err)
 		return undo, fmt.Errorf("failed to set GOMAXPROCS: %w", err)
 	}
 
