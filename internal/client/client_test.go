@@ -40,7 +40,7 @@ func TestClient_Get_Success(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	cfg := config.Client{}
+	cfg := config.Config{}
 	c := client.New(cfg)
 
 	_, err := c.Get(context.Background(), ts.URL)
@@ -50,7 +50,7 @@ func TestClient_Get_Success(t *testing.T) {
 func TestClient_Get_BuildRequestFailure(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Client{}
+	cfg := config.Config{}
 	c := client.New(cfg)
 
 	_, err := c.Get(context.Background(), "://invalid-url")
@@ -61,7 +61,7 @@ func TestClient_Get_BuildRequestFailure(t *testing.T) {
 func TestClient_Get_ClientFailure(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Client{}
+	cfg := config.Config{}
 	c := client.New(cfg)
 
 	_, err := c.Get(context.Background(), "invalid-url")
@@ -82,7 +82,7 @@ func TestClient_Get_ResBodyFailure(t *testing.T) {
 		}
 	}))
 
-	cfg := config.Client{}
+	cfg := config.Config{}
 	c := client.New(cfg)
 
 	_, err := c.Get(context.Background(), ts.URL)

@@ -58,7 +58,7 @@ func New(opts ...Option) Config {
 		opt(&cfg)
 	}
 
-	// Ensure a logger is set before using DebugLog.
+	// If debug is enabled and no logger is set, use the default log.Printf
 	if cfg.debugEnbabled && cfg.log == nil {
 		cfg.log = log.Printf
 	}
@@ -113,11 +113,7 @@ func (c Config) Log(format string, args ...any) {
 // DebugLog logs debug messages if debug is enabled.
 // Used for verbose logging during development or troubleshooting.
 func (c Config) DebugLog(format string, args ...any) {
-	if c.log == nil {
-		panic("DebugLog called but no logger is set. Ensure to set logger before calling DebugLog.")
-	}
-
-	if c.debugEnbabled {
+	if c.debugEnbabled && c.log != nil {
 		c.log("gomaxecs debug: "+format, args...)
 	}
 }
