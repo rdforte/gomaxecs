@@ -22,21 +22,24 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strings"
 	"time"
 )
 
 const (
-	metaURIEnv  = "ECS_CONTAINER_METADATA_URI_V4"
-	taskPath    = "/task"
-	httpTimeout = 5
+	metaURIEnv      = "ECS_CONTAINER_METADATA_URI_V4"
+	DebugEnabledEnv = "GOMAXECS_DEBUG"
+	taskPath        = "/task"
+	httpTimeout     = 5
 )
 
 func New(opts ...Option) Config {
 	uri := GetECSMetadataURI()
 
 	cfg := Config{
+		debugEnbabled:        isDebugEnabled(),
 		TaskMetadataURI:      uri + taskPath,
 		ContainerMetadataURI: uri,
 		Client: Client{
@@ -55,7 +58,20 @@ func New(opts ...Option) Config {
 		opt(&cfg)
 	}
 
+	// Ensure a logger is set before using DebugLog.
+	if cfg.debugEnbabled && cfg.log == nil {
+		cfg.log = log.Printf
+	}
+
+	cfg.DebugLog("Debug logging enabled")
+	cfg.DebugLog("Setup config: %#v", cfg)
+
 	return cfg
+}
+
+func isDebugEnabled() bool {
+	debugEnabled := os.Getenv(DebugEnabledEnv)
+	return strings.EqualFold(debugEnabled, "true") || debugEnabled == "1"
 }
 
 // GetECSMetadataURI returns the ECS metadata URI.
@@ -66,13 +82,14 @@ func GetECSMetadataURI() string {
 
 // Config represents the package configuration.
 type Config struct {
+	debugEnbabled        bool
 	ContainerMetadataURI string
 	TaskMetadataURI      string
 	Client               Client
-	log                  logger
+	log                  Logger
 }
 
-type logger func(format string, args ...any)
+type Logger func(format string, args ...any)
 
 // Client represents the HTTP client configuration.
 type Client struct {
@@ -86,14 +103,27 @@ type Client struct {
 	ResponseHeaderTimeout time.Duration
 }
 
+// Log logs messages using the configured logger.
 func (c Config) Log(format string, args ...any) {
 	if c.log != nil {
 		c.log(format, args...)
 	}
 }
 
+// DebugLog logs debug messages if debug is enabled.
+// Used for verbose logging during development or troubleshooting.
+func (c Config) DebugLog(format string, args ...any) {
+	if c.log == nil {
+		panic("DebugLog called but no logger is set. Ensure to set logger before calling DebugLog.")
+	}
+
+	if c.debugEnbabled {
+		c.log("gomaxecs debug: "+format, args...)
+	}
+}
+
 // WithLogger sets the logger for the config.
-func WithLogger(logger logger) Option {
+func WithLogger(logger Logger) Option {
 	return func(cfg *Config) {
 		cfg.log = logger
 	}

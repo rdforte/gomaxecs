@@ -15,21 +15,30 @@ const maxProcsKey = "GOMAXPROCS"
 // Set sets GOMAXPROCS based on the CPU limit of the container and the task.
 // returns a function to reset GOMAXPROCS to its previous value and an error if one occurred.
 // If the GOMAXPROCS environment variable is set, it will honor that value.
-func Set(opts ...config.Option) (func(), error) {
+func Set(opts ...config.Option) (undo func(), err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("maxprocs: panic occurred while setting GOMAXPROCS: %v", r)
+		}
+		if undo == nil {
+			undo = func() {}
+		}
+	}()
+
 	cfg := config.New(opts...)
 	task := ecstask.New(cfg)
 
-	undoNoop := func() {
+	undo = func() {
 		cfg.Log("maxprocs: No GOMAXPROCS change to reset")
 	}
 
 	if procs, ok := shouldHonorGOMAXPROCSEnv(); ok {
 		cfg.Log("maxprocs: Honoring GOMAXPROCS=%q as set in environment", procs)
-		return undoNoop, nil
+		return undo, nil
 	}
 
 	prevProcs := prevMaxProcs()
-	undo := func() {
+	undo = func() {
 		cfg.Log("maxprocs: Resetting GOMAXPROCS to %v", prevProcs)
 		setMaxProcs(prevProcs)
 	}
@@ -39,6 +48,8 @@ func Set(opts ...config.Option) (func(), error) {
 		cfg.Log("maxprocs: Failed to set GOMAXPROCS:", err)
 		return undo, fmt.Errorf("failed to set GOMAXPROCS: %w", err)
 	}
+
+	cfg.DebugLog("Calculated GOMAXPROCS to be %d", procs)
 
 	setMaxProcs(procs)
 	cfg.Log("maxprocs: Updated GOMAXPROCS=%v", procs)
