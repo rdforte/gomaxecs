@@ -78,7 +78,7 @@ func (t *Task) GetMaxProcs(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("failed to get ECS task meta: %w", err)
 	}
 
-	t.log("Received task metadata: %#v", container)
+	t.log("Received task metadata: %#v", task)
 
 	// Either the container limit or the task limit must be set
 	if container.Limits.CPU == 0 && task.Limits.CPU == 0 {
