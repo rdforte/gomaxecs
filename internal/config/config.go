@@ -30,7 +30,7 @@ import (
 
 const (
 	metaURIEnv      = "ECS_CONTAINER_METADATA_URI_V4"
-	DebugEnabledEnv = "GOMAXECS_DEBUG"
+	debugEnabledEnv = "GOMAXECS_DEBUG"
 	taskPath        = "/task"
 	httpTimeout     = 5
 )
@@ -70,7 +70,7 @@ func New(opts ...Option) Config {
 }
 
 func isDebugEnabled() bool {
-	debugEnabled := os.Getenv(DebugEnabledEnv)
+	debugEnabled := os.Getenv(debugEnabledEnv)
 	return strings.EqualFold(debugEnabled, "true") || debugEnabled == "1"
 }
 
