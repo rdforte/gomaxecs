@@ -138,6 +138,29 @@ func TestConfig_DebugLogf_DoesNotLogWhenGomaxecsDebugEnvNotEnabled(t *testing.T)
 	}
 }
 
+// write test that checks that default log.Printf is used when debug enabled and no logger set.
+func TestConfig_DebugLogf_UsesDefaultLoggerWhenDebugEnabledAndNoLoggerSet(t *testing.T) {
+	t.Setenv("GOMAXECS_DEBUG", "true")
+
+	buf := new(bytes.Buffer)
+
+	// replace the original log.Printf with one that writes to our buffer
+	originalLogger := log.Default()
+	originalOutput := originalLogger.Writer()
+	log.SetOutput(buf)
+	defer log.SetOutput(originalOutput)
+
+	cfg := config.New()
+
+	// clear buffer so we only have fresh logs
+	buf.Reset()
+
+	cfg.DebugLogf("debug log: %s", "stub-message")
+
+	wantLog := "gomaxecs debug: debug log: stub-message\n"
+	assert.Contains(t, buf.String(), wantLog)
+}
+
 type mockOption struct {
 	isApplied bool
 }

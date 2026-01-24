@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/rdforte/gomaxecs/internal/config"
 	"github.com/rdforte/gomaxecs/internal/task/tasktest"
 	"github.com/rdforte/gomaxecs/maxprocs"
 )
@@ -160,4 +161,20 @@ func TestMaxProcs_IsECS_ReturnsTrueIfDetectedECSEnvironment(t *testing.T) {
 
 func TestMaxProcs_IsECS_ReturnsFalseIfNotDetectedECSEnvironment(t *testing.T) {
 	assert.False(t, maxprocs.IsECS())
+}
+
+func TestMaxProcs_ShouldCapturePanic_ReturnsErrorOnPanic(t *testing.T) {
+	panicOption := func(cfg *config.Config) {
+		panic("simulated panic")
+	}
+
+	undo, err := maxprocs.Set(panicOption)
+
+	require.Error(t, err)
+	assert.Contains(t,
+		err.Error(),
+		"panic occurred while setting GOMAXPROCS",
+	)
+
+	assert.NotNil(t, undo)
 }
