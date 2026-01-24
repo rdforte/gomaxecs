@@ -74,6 +74,70 @@ func TestConfig_GetECSMetadataURI_RetrievesMetadataURIFromEnv(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+func TestConfig_GomaxecsDebugEnv_SetsDebugModeInConfig(t *testing.T) {
+	metaURIEnv := "ECS_CONTAINER_METADATA_URI_V4"
+	uri := "mock-ecs-metadata-uri/"
+	t.Setenv(metaURIEnv, uri)
+
+	got := config.GetECSMetadataURI()
+
+	want := "mock-ecs-metadata-uri"
+	assert.Equal(t, want, got)
+}
+
+func TestConfig_DebugLogf_LogsWhenGomaxecsDebugEnvEnabled(t *testing.T) {
+	tableTest := []struct {
+		env string
+	}{
+		{env: "true"},
+		{env: "1"},
+	}
+
+	for _, tt := range tableTest {
+		t.Run("GOMAXECS_DEBUG="+tt.env, func(t *testing.T) {
+			t.Setenv("GOMAXECS_DEBUG", tt.env)
+
+			buf := new(bytes.Buffer)
+			logger := log.New(buf, "", 0)
+
+			cfg := config.New(config.WithLogger(logger.Printf))
+
+			// clear buffer so we only have fresh logs
+			buf.Reset()
+
+			cfg.DebugLogf("debug log: %s", "stub-message")
+
+			wantLog := "gomaxecs debug: debug log: stub-message\n"
+			assert.Equal(t, wantLog, buf.String())
+		})
+	}
+}
+
+func TestConfig_DebugLogf_DoesNotLogWhenGomaxecsDebugEnvNotEnabled(t *testing.T) {
+	tableTest := []struct {
+		env string
+	}{
+		{env: "false"},
+		{env: "0"},
+		{env: ""},
+	}
+
+	for _, tt := range tableTest {
+		t.Run("GOMAXECS_DEBUG="+tt.env, func(t *testing.T) {
+			t.Setenv("GOMAXECS_DEBUG", tt.env)
+
+			buf := new(bytes.Buffer)
+			logger := log.New(buf, "", 0)
+
+			cfg := config.New(config.WithLogger(logger.Printf))
+
+			cfg.DebugLogf("debug log: %s", "stub-message")
+
+			assert.Equal(t, buf.Len(), 0)
+		})
+	}
+}
+
 type mockOption struct {
 	isApplied bool
 }
