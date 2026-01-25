@@ -164,7 +164,7 @@ func TestMaxProcs_IsECS_ReturnsFalseIfNotDetectedECSEnvironment(t *testing.T) {
 }
 
 func TestMaxProcs_ShouldCapturePanic_ReturnsErrorOnPanic(t *testing.T) {
-	panicOption := func(cfg *config.Config) {
+	panicOption := func(_ *config.Config) {
 		panic("simulated panic")
 	}
 

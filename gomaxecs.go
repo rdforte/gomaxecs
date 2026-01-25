@@ -29,9 +29,7 @@ import (
 )
 
 func init() {
-	log.Printf("gomaxecs: Starting calculation for GOMAXPROCS")
 	runSetMaxProcs()
-	log.Printf("gomaxecs: Finished calculation for GOMAXPROCS")
 }
 
 func runSetMaxProcs() {

@@ -3,6 +3,7 @@ package config_test
 import (
 	"bytes"
 	"log"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,10 +12,13 @@ import (
 	"github.com/rdforte/gomaxecs/internal/config"
 )
 
+const (
+	metaURIEnvKey = "ECS_CONTAINER_METADATA_URI_V4"
+	metaURIEnvVal = "mock-ecs-metadata-uri/"
+)
+
 func TestConfig_New_LoadConfiguration(t *testing.T) {
-	metaURIEnv := "ECS_CONTAINER_METADATA_URI_V4"
-	uri := "mock-ecs-metadata-uri/"
-	t.Setenv(metaURIEnv, uri)
+	t.Setenv(metaURIEnvKey, metaURIEnvVal)
 
 	cfg := config.New()
 
@@ -64,24 +68,20 @@ func TestConfig_WithLogger_LogsMessage(t *testing.T) {
 }
 
 func TestConfig_GetECSMetadataURI_RetrievesMetadataURIFromEnv(t *testing.T) {
-	metaURIEnv := "ECS_CONTAINER_METADATA_URI_V4"
-	uri := "mock-ecs-metadata-uri/"
-	t.Setenv(metaURIEnv, uri)
+	t.Setenv(metaURIEnvKey, metaURIEnvVal)
 
 	got := config.GetECSMetadataURI()
 
-	want := "mock-ecs-metadata-uri"
+	want := strings.TrimSuffix(metaURIEnvVal, "/")
 	assert.Equal(t, want, got)
 }
 
 func TestConfig_GomaxecsDebugEnv_SetsDebugModeInConfig(t *testing.T) {
-	metaURIEnv := "ECS_CONTAINER_METADATA_URI_V4"
-	uri := "mock-ecs-metadata-uri/"
-	t.Setenv(metaURIEnv, uri)
+	t.Setenv(metaURIEnvKey, metaURIEnvVal)
 
 	got := config.GetECSMetadataURI()
 
-	want := "mock-ecs-metadata-uri"
+	want := strings.TrimSuffix(metaURIEnvVal, "/")
 	assert.Equal(t, want, got)
 }
 
@@ -133,7 +133,8 @@ func TestConfig_DebugLogf_DoesNotLogWhenGomaxecsDebugEnvNotEnabled(t *testing.T)
 
 			cfg.DebugLogf("debug log: %s", "stub-message")
 
-			assert.Equal(t, buf.Len(), 0)
+			gotLen, wantLen := buf.Len(), 0
+			assert.Equal(t, wantLen, gotLen)
 		})
 	}
 }
@@ -147,6 +148,7 @@ func TestConfig_DebugLogf_UsesDefaultLoggerWhenDebugEnabledAndNoLoggerSet(t *tes
 	// replace the original log.Printf with one that writes to our buffer
 	originalLogger := log.Default()
 	originalOutput := originalLogger.Writer()
+
 	log.SetOutput(buf)
 	defer log.SetOutput(originalOutput)
 
