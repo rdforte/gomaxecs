@@ -25,6 +25,8 @@
 package gomaxecs //nolint:testpackage // Test private function.
 
 import (
+	"bytes"
+	"log"
 	"runtime"
 	"testing"
 
@@ -36,11 +38,21 @@ import (
 func TestGomaxecs_runSetMaxProcs_ECSEnvNotDetected(t *testing.T) {
 	t.Parallel()
 
+	buf := new(bytes.Buffer)
+
+	// replace the original log.Printf with one that writes to our buffer
+	originalLogger := log.Default()
+	originalOutput := originalLogger.Writer()
+
+	log.SetOutput(buf)
+	defer log.SetOutput(originalOutput)
+
 	curMaxProcs := runtime.GOMAXPROCS(0)
 
 	runSetMaxProcs()
 
 	assert.Equal(t, curMaxProcs, runtime.GOMAXPROCS(0))
+	assert.Contains(t, buf.String(), "gomaxecs: ECS environment not detected. Skipping set GOMAXPROCS\n")
 }
 
 func TestGomaxecs_runSetMaxProcs_ECSEnvDetected(t *testing.T) {

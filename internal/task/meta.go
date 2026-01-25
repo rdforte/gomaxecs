@@ -50,6 +50,7 @@ type limit struct {
 // Grab the container metadata from the ECS Metadata endpoint.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html
 func (t *Task) getContainerMeta(ctx context.Context) (container, error) {
+	t.log("Fetching container metadata from %s", t.containerMetadataURI)
 	return getMeta[container](ctx, t.client, t.containerMetadataURI)
 }
 
@@ -58,6 +59,7 @@ func (t *Task) getContainerMeta(ctx context.Context) (container, error) {
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-examples.html
 // #task-metadata-endpoint-v4-example-task-metadata-response.
 func (t *Task) getTaskMeta(ctx context.Context) (taskMeta, error) {
+	t.log("Fetching task metadata from %s", t.taskMetadataURI)
 	return getMeta[taskMeta](ctx, t.client, t.taskMetadataURI)
 }
 

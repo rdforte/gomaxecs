@@ -36,7 +36,7 @@ func (e *ECSAgent) WithContainerMetaEndpoint(containerCPU int) *ECSAgent {
 	e.t.Helper()
 
 	e.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+		_, err := fmt.Fprintf(w, `{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)
 		assert.NoError(e.t, err)
 	})
 
@@ -48,11 +48,12 @@ func (e *ECSAgent) WithTaskMetaEndpoint(containerCPU, taskCPU int) *ECSAgent {
 	e.t.Helper()
 
 	e.mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte(fmt.Sprintf(
+		_, err := fmt.Fprintf(
+			w,
 			`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`,
 			containerCPU,
 			taskCPU,
-		)))
+		)
 		assert.NoError(e.t, err)
 	})
 

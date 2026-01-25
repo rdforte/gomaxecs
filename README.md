@@ -157,6 +157,22 @@ The below logs show that GOMAXPROCS is correctly set to 4 when using the **gomax
 | August 30, 2025 at 16:27 | GOMACPROCS: 4                                      | c2        |
 | August 30, 2025 at 16:27 | 2025/08/30 06:27:35 maxprocs: Updated GOMAXPROCS=4 | c2        |
 
+## Debugging
+
+To enable debug logging set the env variable `GOMAXECS_DEBUG` to `true` or `1`.
+
+```shell
+export GOMAXECS_DEBUG=true
+```
+
+or
+
+```shell
+export GOMAXECS_DEBUG=1
+```
+
+This will increase the verbosity of the logs output by the package and help with debugging any issues.
+
 ## Contribution
 
 If anyone has any good ideas on how this package can be improved, all contributions are welcome.

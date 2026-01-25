@@ -1,10 +1,7 @@
-run:
-  timeout: 5m
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-    - asasalint
     - asasalint
     - asciicheck
     - bidichk
@@ -41,15 +38,11 @@ linters:
     - gocyclo
     - godot
     - godox
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosec
-    - gosimple
     - gosmopolitan
     - govet
     - grouper
@@ -88,10 +81,8 @@ linters:
     - spancheck
     - sqlclosecheck
     - staticcheck
-    - stylecheck
     - tagalign
     - tagliatelle
-    - tenv
     - testableexamples
     - testifylint
     - testpackage
@@ -105,50 +96,69 @@ linters:
     - wastedassign
     - whitespace
     - wrapcheck
-    - wsl
+    - wsl_v5
     - zerologlint
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - funlen
-        - dupl # Duplicated code is allowed in tests.
-        - gochecknoglobals # Globals are allowed in tests.
-        - containedctx
-        - maintidx
-        - ireturn
-        - cyclop
-    - path: gomaxecs.go
-      linters:
-        - gochecknoinits # enable init function for setting GOMAXPROCS.
-    - path: maxprocs/maxprocs_test.go
-      linters:
-        - paralleltest # disable paralleltest for testing GOMAXPROCS env variable.
-    - path: gomaxecs_test.go
-      linters:
-        - paralleltest # disable paralleltest for testing GOMAXPROCS env variable.
-
-linters-settings:
-  depguard:
-    rules:
-      main:
-        allow:
-          - "$gostd"
-          - "github.com/stretchr/testify"
-          - "github.com/rdforte/gomaxecs"
-  tagliatelle:
-    case:
+  settings:
+    depguard:
       rules:
-        json: goPascal
-  varnamelen:
-    min-name-length: 2
-  nlreturn:
-    block-size: 2
-  ireturn:
-    allow:
-      - generic
-      - anon
-      - error
-      - empty
-      - stdlib
+        main:
+          allow:
+            - $gostd
+            - github.com/stretchr/testify
+            - github.com/rdforte/gomaxecs
+    ireturn:
+      allow:
+        - generic
+        - anon
+        - error
+        - empty
+        - stdlib
+    nlreturn:
+      block-size: 2
+    tagliatelle:
+      case:
+        rules:
+          json: goPascal
+    varnamelen:
+      min-name-length: 2
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - containedctx
+          - cyclop
+          - dupl # Duplicated code is allowed in tests.
+          - funlen
+          - gochecknoglobals # Globals are allowed in tests.
+          - ireturn
+          - maintidx
+        path: _test\.go
+      - linters:
+          - gochecknoinits # enable init function for setting GOMAXPROCS.
+        path: gomaxecs.go
+      - linters:
+          - paralleltest # disable paralleltest for testing GOMAXPROCS env variable.
+        path: maxprocs/maxprocs_test.go
+      - linters:
+          - paralleltest # disable paralleltest for testing GOMAXPROCS env variable.
+        path: gomaxecs_test.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
