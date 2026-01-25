@@ -177,4 +177,5 @@ func TestMaxProcs_ShouldCapturePanic_ReturnsErrorOnPanic(t *testing.T) {
 	)
 
 	assert.NotNil(t, undo)
+	assert.IsType(t, func() {}, undo)
 }
