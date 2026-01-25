@@ -35,5 +35,7 @@ func init() {
 func runSetMaxProcs() {
 	if maxprocs.IsECS() {
 		_, _ = maxprocs.Set(maxprocs.WithLogger(log.Printf))
+	} else {
+		log.Printf("gomaxecs: ECS environment not detected. Skipping set GOMAXPROCS")
 	}
 }
