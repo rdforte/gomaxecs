@@ -55,17 +55,18 @@ If you would like to understand more about how these concepts work and the effec
 
 ## Word of Caution
 
-Every workdload is fundamentally different and aligning GOMAXPROCS to the containers CPU might suit most workloads but not all so I advise you do your own **Benchmarking** and **Load Testing** to ensure this is the right solution for your workload. How Go treats CPU bound and IO bound workloads is different and you should understand the implications of setting GOMAXPROCS to the containers CPU before using this package.
+Every workdload is fundamentally different and aligning GOMAXPROCS to the containers CPU might suit most workloads but not all so I advise you to do your own **Benchmarking** and **Load Testing** to ensure this is the right solution for your workload. How Go treats CPU bound and IO bound workloads is different and you should understand the implications of setting GOMAXPROCS to the containers CPU before using this package.
 
 You can read more about how Go treats CPU bound and IO bound workloads [here](https://ryanforte.tech/blog/chassing-99-percentile-pt-1/).
 
-## Experiment: 2 containers, 1 Task. Who can calculate the nth Fibonacci number the fastest?
+## Experiment: 1 Task, 2 Containers. Who can calculate the nth Fibonacci number the fastest?
 
 This experiment was ran 5 times from which the averages were taken.
 
 Each experiment consisted of running 1 task with 2 containers each running the same code to calculate the nth Fibonacci number.
 
 Each experiment ran for 2minutes where 200 concurrent requests were sent to each container to calculate the 30th Fibonacci number.
+A concurrency level of 200 with a Fibonnaci number of 30 was chosen to ensure that the CPU was fully utilised and that we could see the effects of setting GOMAXPROCS to the container CPU.
 
 #### Experiment 1: (no gomaxecs):
 
@@ -76,38 +77,27 @@ GOMAXPROCS for each container = 2
 
 Results:
 
-Container 1:
+**Container Performance**
 
-Avg CPU: 98%
-Slowest: 18.4805 secs
-Fastest: 0.2209 secs
-Average: 1.7137 secs
-Requests/sec: 112.7256
+| Metric       | Container 1  | Container 2  |
+| ------------ | ------------ | ------------ |
+| Avg CPU      | 98%          | 98%          |
+| Slowest      | 18.4805 secs | 18.5556 secs |
+| Fastest      | 0.2209 secs  | 0.2206 secs  |
+| Average      | 1.7137 secs  | 1.7043 secs  |
+| Requests/sec | 112.7256     | 112.6401     |
 
-Latency distribution:
-10% in 0.3528 secs
-25% in 0.6480 secs
-50% in 1.5548 secs
-75% in 1.8237 secs
-90% in 2.8999 secs
-95% in 3.9617 secs
-99% in 10.5919 secs
+**Latency Distribution**
 
-Container 2:
-Avg CPU: 98%
-Slowest: 18.5556 secs
-Fastest: 0.2206 secs
-Average: 1.7043 secs
-Requests/sec: 112.6401
-
-Latency distribution:
-10% in 0.3888 secs
-25% in 0.7305 secs
-50% in 1.5370 secs
-75% in 1.8378 secs
-90% in 2.9015 secs
-95% in 3.8003 secs
-99% in 10.4050 secs
+| Percentile | Container 1  | Container 2  |
+| ---------- | ------------ | ------------ |
+| 10%        | 0.3528 secs  | 0.3888 secs  |
+| 25%        | 0.6480 secs  | 0.7305 secs  |
+| 50%        | 1.5548 secs  | 1.5370 secs  |
+| 75%        | 1.8237 secs  | 1.8378 secs  |
+| 90%        | 2.8999 secs  | 2.9015 secs  |
+| 95%        | 3.9617 secs  | 3.8003 secs  |
+| 99%        | 10.5919 secs | 10.4050 secs |
 
 #### Experiment 2: (gomaxecs):
 
@@ -116,38 +106,29 @@ Container 1 CPU = 1024 (1 vCPU)
 Container 2 CPU = 1024 (1 vCPU)
 GOMAXPROCS for each container = 1
 
-Container 1:
+Results:
 
-Avg CPU: 98%
-Slowest: 3.1090 secs
-Fastest: 0.2449 secs
-Average: 1.5775 secs
-Requests/sec: 125.9529
+**Container Performance**
 
-Latency distribution:
-10% in 1.5595 secs
-25% in 1.5809 secs
-50% in 1.6015 secs
-75% in 1.6253 secs
-90% in 1.6479 secs
-95% in 1.6599 secs
-99% in 1.6893 secs
+| Metric       | Container 1 | Container 2 |
+| ------------ | ----------- | ----------- |
+| Avg CPU      | 98%         | 98%         |
+| Slowest      | 3.1090 secs | 3.2550 secs |
+| Fastest      | 0.2449 secs | 0.2311 secs |
+| Average      | 1.5775 secs | 1.5603 secs |
+| Requests/sec | 125.9529    | 127.4654    |
 
-Container 2:
-Avg CPU: 98%
-Slowest: 3.2550 secs
-Fastest: 0.2311 secs
-Average: 1.5603 secs
-Requests/sec: 127.4654
+**Latency Distribution**
 
-Latency distribution:
-10% in 1.5419 secs
-25% in 1.5638 secs
-50% in 1.5822 secs
-75% in 1.6019 secs
-90% in 1.6227 secs
-95% in 1.6386 secs
-99% in 1.6952 secs
+| Percentile | Container 1 | Container 2 |
+| ---------- | ----------- | ----------- |
+| 10%        | 1.5595 secs | 1.5419 secs |
+| 25%        | 1.5809 secs | 1.5638 secs |
+| 50%        | 1.6015 secs | 1.5822 secs |
+| 75%        | 1.6253 secs | 1.6019 secs |
+| 90%        | 1.6479 secs | 1.6227 secs |
+| 95%        | 1.6599 secs | 1.6386 secs |
+| 99%        | 1.6893 secs | 1.6952 secs |
 
 ## Go 1.25
 
