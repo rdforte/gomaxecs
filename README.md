@@ -34,64 +34,120 @@ func main() {
 
 ![Design](./assets/design.png)
 
-## Intro to GOMAXPROCS
+## GOMAXPROCS
 
-GOMAXPROCS is an env variable and function from the [runtime package](https://pkg.go.dev/runtime@go1.23.1) that limits the number of operating system threads that can execute user-level Go code simultaneously. If GOMAXPROCS is not set then it will default to [runtime.NumCPU](https://pkg.go.dev/runtime@go1.23.1#NumCPU) which is the number of logical CPU cores available by the current process. For example if I decide to run my Go application on my shiny new 8 core Mac Pro, then GOMAXPROCS will default to 8. We are able to configure the number of system threads our Go application can execute by using the runtime.GOMAXPROCS function to override this default.
+GOMAXPROCS is an env variable and function from the [runtime package](https://pkg.go.dev/runtime@go1.23.1) that limits the number of operating system threads that can execute user-level Go code simultaneously.
 
-## What is CFS
+## Why this package exists?
 
-CFS was introduced to the Linux kernel in version [2.6.23](https://kernelnewbies.org/Linux_2_6_23) and is the default process scheduler used in Linux. The main purpose behind CFS is to help ensure that each process gets its own fair share of the CPU proportional to its priority. In Docker every container has access to all the hosts resources, within the limits of the kernel scheduler. Though Docker also provides the means to limit these resources through modifying the containers cgroup on the host machine.
+When you run your Go application in ECS you may be setting the cpu of your containers to a certain value, for example 4096 (4 vCPU's) however when you check the value of GOMAXPROCS for your container you may see that it is defaulting to the cpu of the task or virtual machine.
 
-## Performance implications of running Go in Docker
+Your first instinct (mine included) was to reach out and use something like [uber automaxprocs](https://github.com/uber-go/automaxprocs) to solve this issue.
+You'll soon find though that this did not give you the outcome you were looking for ie: the container cpu value equal to that of GOMAXPROCS.
 
-Lets imagine a scenario where we configure our ECS Task to use 8 CPU's and our container to use 4 vCPU's.
+This is due to the following issue: [issue 66](https://github.com/uber-go/automaxprocs/issues/66) and the fact that our containers are using CFS to manage our resources on the Operating System level and automaxprocs primarly works on CPU Limits though ECS works on CPU Shares.
 
-```
-{
-    "containerDefinitions": [
-        {
-            "cpu": 4096, // Limit container to 4 vCPU's
-        }
-    ],
-    "cpu": "8192", // Task uses 8 CPU's
-    "memory": "16384",
-    "runtimePlatform": {
-        "cpuArchitecture": "X86_64",
-        "operatingSystemFamily": "LINUX"
-    },
-}
-```
+How CPU Limits and Shares work for managing the given amount of time a process has on a CPU are fundamentally different.
 
-The ECS Task CPU period is locked into 100ms
+If you would like to understand more about how these concepts work and the effects that may have on your workloads I have put together a details article explaining the different concepts which you can read here:
 
-[https://github.com/aws/amazon-ecs-agent/blob/d68e729f73e588982dc2189a1c618c18c47c931b/agent/api/task/task_linux.go#L39](https://github.com/aws/amazon-ecs-agent/blob/d68e729f73e588982dc2189a1c618c18c47c931b/agent/api/task/task_linux.go#L39)
+**[Go Performance Tuning on Linux. Pt 1 - Building a mental model.](https://ryanforte.tech/blog/chassing-99-percentile-pt-1/)**.
 
-The CPU Period refers to the time period in microseconds, where the kernel will do some calculations to figure out the allotted amount of CPU time to provide each task.
-In the above configuration this would be 4 vCPU's multiplied by 100ms giving the task 400ms (4 x 100ms).
+## Word of Caution
 
-If all is well and good with our Go application then we would have go routines scheduled on 4 threads across 4 cores.
+Every workdload is fundamentally different and aligning GOMAXPROCS to the containers CPU might suit most workloads but not all so I advise you do your own **Benchmarking** and **Load Testing** to ensure this is the right solution for your workload. How Go treats CPU bound and IO bound workloads is different and you should understand the implications of setting GOMAXPROCS to the containers CPU before using this package.
 
-![4 threads](./assets/4-threads.png)
+You can read more about how Go treats CPU bound and IO bound workloads [here](https://ryanforte.tech/blog/chassing-99-percentile-pt-1/).
 
-_Threads scheduled on cores 1, 3, 6, 8_
+## Experiment: 2 containers, 1 Task. Who can calculate the nth Fibonacci number the fastest?
 
-For each 100ms period our Go application consumes the full 400 out of 400ms, therefore 100% of the CPU quota.
+This experiment was ran 5 times from which the averages were taken.
 
-Now Go is **NOT** CFS aware https://github.com/golang/go/issues/33803 therefore GOMAXPROCS will default to using all 8 cores of the Task.
+Each experiment consisted of running 1 task with 2 containers each running the same code to calculate the nth Fibonacci number.
 
-![8 threads](./assets/8-threads.png)
+Each experiment ran for 2minutes where 200 concurrent requests were sent to each container to calculate the 30th Fibonacci number.
 
-Now we have our Go application using all 8 cores resulting in 8 threads executing go routines. After 50ms of execution we reach our CPU quota 50ms _ 8 threads giving us 400ms (8 _ 50ms).
-As a result CFS will throttle our CPU resources, meaning that no more CPU resources will be allocated till the next period. This means our application will be sitting idle doing nothing for
-a full 50ms.
+#### Experiment 1: (no gomaxecs):
 
-If our Go application has an average latency of 50ms this now means a request to our service can take up to 150ms to complete, which is a 300% increase in latency.
+Task CPU = 2048 (2 vCPU's)
+Container 1 CPU = 1024 (1 vCPU)
+Container 2 CPU = 1024 (1 vCPU)
+GOMAXPROCS for each container = 2
 
-## CFS Solution
+Results:
 
-In Kubernetes this issue is quite easy to solve as we have [uber automaxprocs](https://github.com/uber-go/automaxprocs) to solve this issue. So why not use Uber's automaxprocs then and whats the reason
-behind **gomaxecs package**? Well Ubers automaxprocs does not work for ECS https://github.com/uber-go/automaxprocs/issues/66 because the cgroup `cpu.cfs_quota_us` is set to -1 🥲. The workaround for this
-is to then leverage [ECS Metadata](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint.html) as a means to sourcing the container limits and setting GOMAXPROCS at runtime.
+Container 1:
+
+Avg CPU: 98%
+Slowest: 18.4805 secs
+Fastest: 0.2209 secs
+Average: 1.7137 secs
+Requests/sec: 112.7256
+
+Latency distribution:
+10% in 0.3528 secs
+25% in 0.6480 secs
+50% in 1.5548 secs
+75% in 1.8237 secs
+90% in 2.8999 secs
+95% in 3.9617 secs
+99% in 10.5919 secs
+
+Container 2:
+Avg CPU: 98%
+Slowest: 18.5556 secs
+Fastest: 0.2206 secs
+Average: 1.7043 secs
+Requests/sec: 112.6401
+
+Latency distribution:
+10% in 0.3888 secs
+25% in 0.7305 secs
+50% in 1.5370 secs
+75% in 1.8378 secs
+90% in 2.9015 secs
+95% in 3.8003 secs
+99% in 10.4050 secs
+
+#### Experiment 2: (gomaxecs):
+
+Task CPU = 2048 (2 vCPU's)
+Container 1 CPU = 1024 (1 vCPU)
+Container 2 CPU = 1024 (1 vCPU)
+GOMAXPROCS for each container = 1
+
+Container 1:
+
+Avg CPU: 98%
+Slowest: 3.1090 secs
+Fastest: 0.2449 secs
+Average: 1.5775 secs
+Requests/sec: 125.9529
+
+Latency distribution:
+10% in 1.5595 secs
+25% in 1.5809 secs
+50% in 1.6015 secs
+75% in 1.6253 secs
+90% in 1.6479 secs
+95% in 1.6599 secs
+99% in 1.6893 secs
+
+Container 2:
+Avg CPU: 98%
+Slowest: 3.2550 secs
+Fastest: 0.2311 secs
+Average: 1.5603 secs
+Requests/sec: 127.4654
+
+Latency distribution:
+10% in 1.5419 secs
+25% in 1.5638 secs
+50% in 1.5822 secs
+75% in 1.6019 secs
+90% in 1.6227 secs
+95% in 1.6386 secs
+99% in 1.6952 secs
 
 ## Go 1.25
 
