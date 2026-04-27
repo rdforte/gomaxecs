@@ -45,7 +45,7 @@ When you run your Go application in ECS you may be setting the cpu of your conta
 Your first instinct (mine included) was to reach out and use something like [uber automaxprocs](https://github.com/uber-go/automaxprocs) to solve this issue.
 You'll soon find though that this did not give you the outcome you were looking for ie: the container cpu value equal to that of GOMAXPROCS.
 
-This is due to the following issue: [issue 66](https://github.com/uber-go/automaxprocs/issues/66) and the fact that our containers are using CFS to manage our resources on the Operating System level and automaxprocs primarly works on CPU Limits though ECS works on CPU Shares.
+This is due to the following issue: [issue 66](https://github.com/uber-go/automaxprocs/issues/66) and the fact that our containers are using CFS to manage our resources on the Operating System level and automaxprocs and Go1.25 primarly works on solving the CPU Limits issue for container orchastration technologies like Kubernetes though ECS works on CPU Shares.
 
 How CPU Limits and Shares work for managing the given amount of time a process has on a CPU are fundamentally different.
 
@@ -63,10 +63,15 @@ You can read more about how Go treats CPU bound and IO bound workloads [here](ht
 
 This experiment was ran 5 times from which the averages were taken.
 
-Each experiment consisted of running 1 task with 2 containers each running the same code to calculate the nth Fibonacci number.
+Each experiment consisted of running 1 task with 2 containers each running the same code to calculate the nth Fibonacci number recursively (least optimal) not iteratively (most optimal).
 
-Each experiment ran for 2minutes where 200 concurrent requests were sent to each container to calculate the 30th Fibonacci number.
+Each experiment ran for 2 minutes where 200 concurrent requests were sent to each container to calculate the 30th Fibonacci number.
+
 A concurrency level of 200 with a Fibonnaci number of 30 was chosen to ensure that the CPU was fully utilised and that we could see the effects of setting GOMAXPROCS to the container CPU.
+
+This experminent is highly biased towards CPU bound workloads and is used to demonstrate the adverse effects of not setting GOMAXPROCS to the conainer CPU.
+
+A still highly advise you to do your own benchmarking and load testing to ensure this is the right solution for your workloads.
 
 #### Experiment 1: (no gomaxecs):
 
