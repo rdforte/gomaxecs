@@ -55,7 +55,7 @@ If you would like to understand more about how these concepts work and the effec
 
 ## Word of Caution
 
-Every workdload is fundamentally different and aligning GOMAXPROCS to the containers CPU might suit most workloads but not all so I advise you to do your own **Benchmarking** and **Load Testing** to ensure this is the right solution for your workload. How Go treats CPU bound and IO bound workloads is different and you should understand the implications of setting GOMAXPROCS to the containers CPU before using this package.
+Every workload is fundamentally different and aligning GOMAXPROCS to the containers CPU might suit most workloads but not all so I advise you to do your own **Benchmarking** and **Load Testing** to ensure this is the right solution for your workload. How Go treats CPU bound and IO bound workloads is different and you should understand the implications of setting GOMAXPROCS to the containers CPU before using this package.
 
 You can read more about how Go treats CPU bound and IO bound workloads [here](https://ryanforte.tech/blog/chassing-99-percentile-pt-1/).
 
