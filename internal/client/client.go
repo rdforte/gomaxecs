@@ -23,6 +23,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -30,6 +31,11 @@ import (
 
 	"github.com/rdforte/gomaxecs/internal/config"
 )
+
+// errNilResponse is returned when the underlying HTTP client returns a nil
+// response without an error, which should not happen but would otherwise
+// cause a nil-pointer panic on res.Body.
+var errNilResponse = errors.New("received nil response from HTTP client")
 
 // New returns a new Client.
 func New(cfg config.Config) *Client {
@@ -73,8 +79,9 @@ func (c *Client) Get(ctx context.Context, url string) (*Response, error) {
 		c.log("Error performing HTTP GET request to %s: %v", url, err)
 		return nil, fmt.Errorf("failed to perform HTTP GET request: %w", err)
 	}
+
 	if res == nil {
-		return nil, fmt.Errorf("received nil response from %s", url)
+		return nil, fmt.Errorf("received nil response from HTTP client: %w", errNilResponse)
 	}
 	defer res.Body.Close()
 
