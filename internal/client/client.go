@@ -73,6 +73,9 @@ func (c *Client) Get(ctx context.Context, url string) (*Response, error) {
 		c.log("Error performing HTTP GET request to %s: %v", url, err)
 		return nil, fmt.Errorf("failed to perform HTTP GET request: %w", err)
 	}
+	if res == nil {
+		return nil, fmt.Errorf("received nil response from %s", url)
+	}
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
