@@ -58,10 +58,16 @@ func New(cfg config.Config) *Client {
 	}
 }
 
+// httpDoer is the subset of *http.Client used by Client, so tests can
+// inject a stub that returns a nil response to exercise the guard.
+type httpDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // Client is an HTTP client.
 type Client struct {
 	log    config.Logger
-	client *http.Client
+	client httpDoer
 }
 
 // Get performs an HTTP GET request.

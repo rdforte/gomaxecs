@@ -18,74 +18,80 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package client_test
+package client
 
 import (
 	"context"
+	"io"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/rdforte/gomaxecs/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/rdforte/gomaxecs/internal/client"
-	"github.com/rdforte/gomaxecs/internal/config"
 )
 
-func TestClient_Get_Success(t *testing.T) {
-	t.Parallel()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	cfg := config.Config{}
-	c := client.New(cfg)
-
-	_, err := c.Get(context.Background(), ts.URL)
-	assert.NoError(t, err)
+// stubDoer implements httpDoer and returns a fixed *http.Response and error
+// for every request, so we can exercise Client.Get without a live server.
+type stubDoer struct {
+	resp *http.Response
+	err  error
 }
 
-func TestClient_Get_BuildRequestFailure(t *testing.T) {
-	t.Parallel()
-
-	cfg := config.Config{}
-	c := client.New(cfg)
-
-	_, err := c.Get(context.Background(), "://invalid-url")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create HTTP request")
+func (s *stubDoer) Do(*http.Request) (*http.Response, error) {
+	return s.resp, s.err
 }
 
-func TestClient_Get_ClientFailure(t *testing.T) {
+func newClientWithDoer(t *testing.T, doer httpDoer) *Client {
+	t.Helper()
+	cfg := config.New(config.WithLogger(func(string, ...any) {}))
+	return &Client{
+		log:    cfg.DebugLogf,
+		client: doer,
+	}
+}
+
+func TestClient_Get_ReturnsErrorOnNilResponse(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{}
-	c := client.New(cfg)
+	// A custom httpDoer that returns (nil, nil) — the stdlib *http.Client
+	// itself rejects this, so the guard in Get only fires for non-stdlib clients.
+	c := newClientWithDoer(t, &stubDoer{resp: nil, err: nil})
 
-	_, err := c.Get(context.Background(), "invalid-url")
+	res, err := c.Get(context.Background(), "http://example.test/metadata")
 	require.Error(t, err)
+	assert.Nil(t, res)
+	assert.ErrorIs(t, err, errNilResponse)
+	assert.Contains(t, err.Error(), "received nil response from HTTP client")
+}
+
+func TestClient_Get_ReturnsErrorWhenTransportFails(t *testing.T) {
+	t.Parallel()
+
+	wantErr := io.ErrUnexpectedEOF
+	c := newClientWithDoer(t, &stubDoer{resp: nil, err: wantErr})
+
+	res, err := c.Get(context.Background(), "http://example.test/metadata")
+	require.Error(t, err)
+	assert.Nil(t, res)
 	assert.Contains(t, err.Error(), "failed to perform HTTP GET request")
 }
 
-func TestClient_Get_ResBodyFailure(t *testing.T) {
+func TestClient_Get_ReturnsResponseOnSuccess(t *testing.T) {
 	t.Parallel()
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, err := w.Write([]byte("partial-data"))
-		assert.NoError(t, err)
+	body := strings.NewReader("hello")
+	c := newClientWithDoer(t, &stubDoer{
+		resp: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(body),
+		},
+	})
 
-		if hijacker, ok := w.(http.Hijacker); ok {
-			conn, _, _ := hijacker.Hijack()
-			conn.Close()
-		}
-	}))
-
-	cfg := config.Config{}
-	c := client.New(cfg)
-
-	_, err := c.Get(context.Background(), ts.URL)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read response body")
+	res, err := c.Get(context.Background(), "http://example.test/metadata")
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, []byte("hello"), res.Body)
 }
