@@ -37,6 +37,12 @@ import (
 // cause a nil-pointer panic on res.Body.
 var errNilResponse = errors.New("received nil response from HTTP client")
 
+// httpDoer is the subset of *http.Client used by Client, so tests can
+// inject a stub that returns a nil response to exercise the guard.
+type httpDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // New returns a new Client.
 func New(cfg config.Config) *Client {
 	return &Client{
@@ -58,10 +64,14 @@ func New(cfg config.Config) *Client {
 	}
 }
 
-// httpDoer is the subset of *http.Client used by Client, so tests can
-// inject a stub that returns a nil response to exercise the guard.
-type httpDoer interface {
-	Do(req *http.Request) (*http.Response, error)
+// HTTPDoer exposes the doer interface so external tests can inject a stub.
+type HTTPDoer = httpDoer
+
+// NewWithClient returns a Client that uses the supplied HTTPDoer instead of a
+// default *http.Client. It exists so tests can exercise the nil-response guard
+// without a live server.
+func NewWithClient(log config.Logger, doer HTTPDoer) *Client {
+	return &Client{log: log, client: doer}
 }
 
 // Client is an HTTP client.

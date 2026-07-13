@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package client
+package client_test
 
 import (
 	"context"
@@ -27,13 +27,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rdforte/gomaxecs/internal/client"
 	"github.com/rdforte/gomaxecs/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// stubDoer implements httpDoer and returns a fixed *http.Response and error
-// for every request, so we can exercise Client.Get without a live server.
+// stubDoer implements client.HTTPDoer and returns a fixed *http.Response and
+// error for every request, so we can exercise Client.Get without a live server.
 type stubDoer struct {
 	resp *http.Response
 	err  error
@@ -43,26 +44,22 @@ func (s *stubDoer) Do(*http.Request) (*http.Response, error) {
 	return s.resp, s.err
 }
 
-func newClientWithDoer(t *testing.T, doer httpDoer) *Client {
+func newClientWithDoer(t *testing.T, doer client.HTTPDoer) *client.Client {
 	t.Helper()
 	cfg := config.New(config.WithLogger(func(string, ...any) {}))
-	return &Client{
-		log:    cfg.DebugLogf,
-		client: doer,
-	}
+	return client.NewWithClient(cfg.DebugLogf, doer)
 }
 
 func TestClient_Get_ReturnsErrorOnNilResponse(t *testing.T) {
 	t.Parallel()
 
-	// A custom httpDoer that returns (nil, nil) — the stdlib *http.Client
+	// A custom client.HTTPDoer that returns (nil, nil) — the stdlib *http.Client
 	// itself rejects this, so the guard in Get only fires for non-stdlib clients.
 	c := newClientWithDoer(t, &stubDoer{resp: nil, err: nil})
 
 	res, err := c.Get(context.Background(), "http://example.test/metadata")
 	require.Error(t, err)
 	assert.Nil(t, res)
-	assert.ErrorIs(t, err, errNilResponse)
 	assert.Contains(t, err.Error(), "received nil response from HTTP client")
 }
 
